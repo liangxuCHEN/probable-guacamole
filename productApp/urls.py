@@ -12,6 +12,10 @@ app_name = 'productApp'
 
 # 注册视图集
 router.register(r'users', views.UserViewSet)
+router.register(r'product-types', views.ProductTypeViewSet)
+router.register(r'products', views.ProductViewSet)
+router.register(r'operation-records', views.OperationRecordViewSet)
+router.register(r'repair-records', views.RepairRecordViewSet)
 
 
 urlpatterns = [

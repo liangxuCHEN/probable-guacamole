@@ -5,9 +5,19 @@ from rest_framework.decorators import api_view, permission_classes, action
 from django.contrib.auth import authenticate
 from rest_framework import status, viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
+from django.db import transaction
+from django.shortcuts import get_object_or_404
 
-from .models import User
-from .serializers import UserSerializer, UserLoginSerializer
+from .models import (
+    User, ProductType, Product, OperationRecord, RepairRecord
+)
+from .serializers import (
+    UserSerializer, UserLoginSerializer, ProductTypeSerializer, ProductSerializer,
+    ProductCreateSerializer, ProductBulkCreateSerializer, ProductShippingSerializer,
+    ProductActivationSerializer, OperationRecordSerializer, RepairRecordSerializer,
+    RepairRecordCreateSerializer, WarrantyCheckSerializer
+)
 
 
 @api_view(['POST'])
@@ -72,3 +82,276 @@ class UserViewSet(viewsets.ModelViewSet):
         """获取当前登录用户信息"""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+
+class ProductTypeViewSet(viewsets.ModelViewSet):
+    """产品类型管理视图集"""
+    queryset = ProductType.objects.all()
+    serializer_class = ProductTypeSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['name', 'model_number']
+    search_fields = ['name', 'model_number', 'description']
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        """只有管理员可以创建、更新和删除产品类型"""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAdminUser]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+
+class ProductViewSet(viewsets.ModelViewSet):
+    """产品管理视图集"""
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['qrcode_id', 'product_type', 'status', 'agent']
+    search_fields = ['qrcode_id']
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return ProductCreateSerializer
+        return self.serializer_class
+
+    def get_permissions(self):
+        """根据不同的操作设置不同的权限"""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsAdminUser]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def perform_create(self, serializer):
+        """创建产品时自动记录操作"""
+        product = serializer.save()
+        OperationRecord.objects.create(
+            product=product,
+            operator=self.request.user,
+            operation_type=1,  # 创建产品
+            description=f"创建产品 {product.qrcode_id}"
+        )
+
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request):
+        """批量创建产品"""
+        serializer = ProductBulkCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            product_type = get_object_or_404(ProductType, id=serializer.validated_data['product_type_id'])
+            products = []
+            for qrcode_id in serializer.validated_data['qrcode_ids']:
+                products.append(Product(
+                    qrcode_id=qrcode_id,
+                    product_type=product_type
+                ))
+            
+            with transaction.atomic():
+                created_products = Product.objects.bulk_create(products)
+                # 批量创建操作记录
+                operation_records = [
+                    OperationRecord(
+                        product=product,
+                        operator=request.user,
+                        operation_type=1,
+                        description=f"批量创建产品 {product.qrcode_id}"
+                    ) for product in created_products
+                ]
+                OperationRecord.objects.bulk_create(operation_records)
+            
+            return Response({
+                'status': 'success',
+                'message': f'成功创建 {len(created_products)} 个产品'
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def bulk_shipping(self, request):
+        """批量发货"""
+        serializer = ProductShippingSerializer(data=request.data)
+        if serializer.is_valid():
+            agent = get_object_or_404(User, id=serializer.validated_data['agent_id'], user_type=User.AGENT)
+            shipping_date = serializer.validated_data.get('shipping_date', timezone.now())
+            
+            with transaction.atomic():
+                # 更新产品信息
+                products = Product.objects.filter(
+                    qrcode_id__in=serializer.validated_data['qrcode_ids'],
+                    status=1  # 只能发货状态为"已生成"的产品
+                )
+                if not products.exists():
+                    return Response({
+                        'status': 'error',
+                        'message': '未找到可发货的产品'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                products.update(
+                    agent=agent,
+                    shipping_date=shipping_date,
+                    status=2  # 更新状态为"已出货"
+                )
+                
+                # 创建操作记录
+                operation_records = [
+                    OperationRecord(
+                        product=product,
+                        operator=request.user,
+                        operation_type=2,  # 产品出货
+                        description=f"产品出货给代理商 {agent.username}"
+                    ) for product in products
+                ]
+                OperationRecord.objects.bulk_create(operation_records)
+            
+            return Response({
+                'status': 'success',
+                'message': f'成功发货 {products.count()} 个产品给代理商 {agent.username}'
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def activate(self, request):
+        """激活产品"""
+        serializer = ProductActivationSerializer(data=request.data)
+        if serializer.is_valid():
+            product = get_object_or_404(
+                Product,
+                qrcode_id=serializer.validated_data['qrcode_id'],
+                status=2  # 只能激活状态为"已出货"的产品
+            )
+            customer = get_object_or_404(
+                User,
+                id=serializer.validated_data['customer_id'],
+                user_type=User.ClIENT
+            )
+            
+            if product.activate(customer):
+                # 创建操作记录
+                OperationRecord.objects.create(
+                    product=product,
+                    operator=request.user,
+                    operation_type=3,  # 产品激活
+                    description=f"产品被客户 {customer.username} 激活"
+                )
+                return Response({
+                    'status': 'success',
+                    'message': '产品激活成功'
+                })
+            return Response({
+                'status': 'error',
+                'message': '产品无法激活'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def check_warranty(self, request):
+        """查询保修状态"""
+        serializer = WarrantyCheckSerializer(data=request.data)
+        if serializer.is_valid():
+            filters = {}
+            if qrcode_id := serializer.validated_data.get('qrcode_id'):
+                filters['qrcode_id'] = qrcode_id
+            if customer_email := serializer.validated_data.get('customer_email'):
+                filters['customer__email'] = customer_email
+            if customer_phone := serializer.validated_data.get('customer_phone'):
+                filters['customer__phone'] = customer_phone
+            
+            products = Product.objects.filter(**filters)
+            if not products.exists():
+                return Response({
+                    'status': 'error',
+                    'message': '未找到相关产品'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            results = []
+            for product in products:
+                results.append({
+                    'qrcode_id': product.qrcode_id,
+                    'product_type': product.product_type.name,
+                    'under_warranty': product.is_under_warranty(),
+                    'warranty_start': product.warranty_start_date,
+                    'warranty_end': product.warranty_end_date,
+                    'status': product.get_status_display()
+                })
+            
+            return Response({
+                'status': 'success',
+                'data': results
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OperationRecordViewSet(viewsets.ReadOnlyModelViewSet):
+    """操作记录视图集 - 只读"""
+    queryset = OperationRecord.objects.all()
+    serializer_class = OperationRecordSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['product', 'operator', 'operation_type']
+    search_fields = ['product__qrcode_id', 'description']
+    permission_classes = [IsAuthenticated]
+
+
+class RepairRecordViewSet(viewsets.ModelViewSet):
+    """维修记录管理视图集"""
+    queryset = RepairRecord.objects.all()
+    serializer_class = RepairRecordSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['product', 'customer', 'technician', 'status']
+    search_fields = ['product__qrcode_id', 'repair_reason', 'repair_solution']
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return RepairRecordCreateSerializer
+        return self.serializer_class
+
+    def perform_create(self, serializer):
+        """创建维修记录时自动更新产品状态并创建操作记录"""
+        repair_record = serializer.save()
+        product = repair_record.product
+        
+        with transaction.atomic():
+            # 更新产品状态为维修中
+            product.status = 4  # 维修中
+            product.save()
+            
+            # 创建操作记录
+            OperationRecord.objects.create(
+                product=product,
+                operator=self.request.user,
+                operation_type=4,  # 维修登记
+                description=f"产品进入维修，原因：{repair_record.repair_reason}"
+            )
+
+    @action(detail=True, methods=['post'])
+    def complete_repair(self, request, pk=None):
+        """完成维修"""
+        repair_record = self.get_object()
+        if repair_record.status != 2:  # 只有状态为"维修中"的记录才能标记为完成
+            return Response({
+                'status': 'error',
+                'message': '只有正在维修中的记录才能标记为完成'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        with transaction.atomic():
+            repair_record.status = 3  # 已完成
+            repair_record.repair_date = timezone.now()
+            repair_record.save()
+            
+            # 更新产品状态为已激活
+            product = repair_record.product
+            product.status = 3  # 已激活
+            product.save()
+            
+            # 创建操作记录
+            OperationRecord.objects.create(
+                product=product,
+                operator=request.user,
+                operation_type=5,  # 维修完成
+                description=f"产品维修完成，解决方案：{repair_record.repair_solution}"
+            )
+        
+        return Response({
+            'status': 'success',
+            'message': '维修完成'
+        })
