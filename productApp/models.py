@@ -75,7 +75,7 @@ class Product(models.Model):
     
     qrcode_id = models.CharField(max_length=100, unique=True, db_index=True, verbose_name='二维码ID')
     product_type = models.ForeignKey(
-        ProductType, on_delete=models.CASCADE,
+        ProductType, on_delete=models.CASCADE, null=True, blank=True,
         related_name='products', verbose_name='产品类型'
     )
     agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='agent_products', 
@@ -84,13 +84,17 @@ class Product(models.Model):
     shipping_date = models.DateTimeField(null=True, blank=True, verbose_name='出货日期')
     activation_date = models.DateTimeField(null=True, blank=True, verbose_name='激活日期')
 
-    customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='customer_products',
-                                limit_choices_to={'user_type': User.ClIENT}, verbose_name='客户')
     warranty_start_date = models.DateTimeField(null=True, blank=True, verbose_name='保修开始日期')
     warranty_end_date = models.DateTimeField(null=True, blank=True, verbose_name='保修结束日期')
     status = models.IntegerField(choices=STATUS_CHOICES, default=1, verbose_name='状态')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 客户信息：name, phone, city, country, email
+    name = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户姓名')
+    phone = models.CharField(max_length=20, null=True, blank=True, verbose_name='客户电话')
+    city = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户城市')
+    country = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户国家')
+    email = models.EmailField(null=True, blank=True, verbose_name='客户邮箱')
 
     class Meta:
         verbose_name = '产品'
@@ -98,7 +102,7 @@ class Product(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.qrcode_id} - {self.product_type.name}"
+        return f"{self.qrcode_id}"
     
     def is_under_warranty(self):
         """检查产品是否在保修期内"""
@@ -107,10 +111,9 @@ class Product(models.Model):
         now = datetime.now()
         return self.warranty_start_date <= now <= self.warranty_end_date
     
-    def activate(self, customer):
+    def activate(self):
         """激活产品"""
         if self.status == 2:  # 只有已出货的产品才能激活
-            self.customer = customer
             self.activation_date = datetime.now()
             self.warranty_start_date = self.activation_date
             # 根据产品类型设置保修结束日期

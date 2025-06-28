@@ -57,14 +57,13 @@ class ProductTypeSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     product_type_name = serializers.ReadOnlyField(source='product_type.name')
     agent_name = serializers.ReadOnlyField(source='agent.username', allow_null=True)
-    customer_name = serializers.ReadOnlyField(source='customer.username', allow_null=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     under_warranty = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = ['id', 'qrcode_id', 'product_type', 'product_type_name', 'agent', 'agent_name', 
-                 'shipping_date', 'activation_date', 'customer', 'customer_name', 
+                 'shipping_date', 'activation_date', 'name', 'phone', 'email', 'city', 'country',
                  'warranty_start_date', 'warranty_end_date', 'status', 'status_display', 
                  'under_warranty', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at', 'warranty_start_date', 'warranty_end_date']
@@ -92,7 +91,20 @@ class ProductShippingSerializer(serializers.Serializer):
 
 class ProductActivationSerializer(serializers.Serializer):
     qrcode_id = serializers.CharField(max_length=100)
-    customer_id = serializers.IntegerField()
+    name = serializers.CharField(max_length=50)
+    phone = serializers.CharField(max_length=20)
+    email = serializers.EmailField(required=False)
+    city = serializers.CharField(max_length=50, required=False)
+    country = serializers.CharField(max_length=50, required=False)
+
+    def validate(self, data):
+        """
+        验证至少提供了姓名和电话
+        """
+        if not data.get('name') or not data.get('phone'):
+            raise serializers.ValidationError("客户姓名和电话是必填项")
+        return data
+    
 
 
 class OperationRecordSerializer(serializers.ModelSerializer):
@@ -124,7 +136,35 @@ class RepairRecordSerializer(serializers.ModelSerializer):
 class RepairRecordCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = RepairRecord
-        fields = ['product', 'customer', 'repair_reason']
+        fields = ['product', 'repair_reason']
+    
+    def create(self, validated_data):
+        """
+        创建维修记录时，从产品中获取客户信息
+        """
+        product = validated_data['product']
+        # 查找与产品关联的客户
+        try:
+            customer = User.objects.get(email=product.email, phone=product.phone)
+        except User.DoesNotExist:
+            # 如果客户不存在，创建一个新客户
+            customer = User.objects.create_user(
+                username=f"customer_{product.phone}",
+                email=product.email,
+                phone=product.phone,
+                user_type=User.ClIENT,
+                first_name=product.name,
+                country=product.country,
+                city=product.city
+            )
+        
+        # 创建维修记录
+        repair_record = RepairRecord.objects.create(
+            product=product,
+            customer=customer,
+            repair_reason=validated_data['repair_reason']
+        )
+        return repair_record
 
 
 class WarrantyCheckSerializer(serializers.Serializer):

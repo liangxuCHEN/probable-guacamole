@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -219,19 +220,22 @@ class ProductViewSet(viewsets.ModelViewSet):
                 qrcode_id=serializer.validated_data['qrcode_id'],
                 status=2  # 只能激活状态为"已出货"的产品
             )
-            customer = get_object_or_404(
-                User,
-                id=serializer.validated_data['customer_id'],
-                user_type=User.ClIENT
-            )
             
-            if product.activate(customer):
+            # 更新产品的客户信息
+            product.name = serializer.validated_data['name']
+            product.phone = serializer.validated_data['phone']
+            product.email = serializer.validated_data.get('email')
+            product.city = serializer.validated_data.get('city')
+            product.country = serializer.validated_data.get('country')
+            
+            if product.activate():
+                product.save()  # 保存客户信息
                 # 创建操作记录
                 OperationRecord.objects.create(
                     product=product,
                     operator=request.user,
                     operation_type=3,  # 产品激活
-                    description=f"产品被客户 {customer.username} 激活"
+                    description=f"产品被客户 {product.name} 激活"
                 )
                 return Response({
                     'status': 'success',
@@ -252,9 +256,9 @@ class ProductViewSet(viewsets.ModelViewSet):
             if qrcode_id := serializer.validated_data.get('qrcode_id'):
                 filters['qrcode_id'] = qrcode_id
             if customer_email := serializer.validated_data.get('customer_email'):
-                filters['customer__email'] = customer_email
+                filters['email'] = customer_email
             if customer_phone := serializer.validated_data.get('customer_phone'):
-                filters['customer__phone'] = customer_phone
+                filters['phone'] = customer_phone
             
             products = Product.objects.filter(**filters)
             if not products.exists():
@@ -307,21 +311,24 @@ class RepairRecordViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """创建维修记录时自动更新产品状态并创建操作记录"""
-        repair_record = serializer.save()
-        product = repair_record.product
-        
-        with transaction.atomic():
-            # 更新产品状态为维修中
-            product.status = 4  # 维修中
-            product.save()
-            
-            # 创建操作记录
-            OperationRecord.objects.create(
-                product=product,
-                operator=self.request.user,
-                operation_type=4,  # 维修登记
-                description=f"产品进入维修，原因：{repair_record.repair_reason}"
-            )
+        try:
+            with transaction.atomic():
+                repair_record = serializer.save()
+                product = repair_record.product
+                
+                # 更新产品状态为维修中
+                product.status = 4  # 维修中
+                product.save()
+                
+                # 创建操作记录
+                OperationRecord.objects.create(
+                    product=product,
+                    operator=self.request.user,
+                    operation_type=4,  # 维修登记
+                    description=f"客户 {product.name} 的产品进入维修，原因：{repair_record.repair_reason}"
+                )
+        except Exception as e:
+            raise ValidationError(f"创建维修记录失败：{str(e)}")
 
     @action(detail=True, methods=['post'])
     def complete_repair(self, request, pk=None):
