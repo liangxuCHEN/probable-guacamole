@@ -16,6 +16,8 @@ class User(AbstractUser):
 
     phone = models.CharField(max_length=20, unique=True, db_index=True, null=True, blank=True, verbose_name='手机号')
     user_type = models.IntegerField(choices=USER_TYPE_CHOICES, verbose_name='用户类型', default=EMPLOYEE)
+    country = models.CharField(max_length=50, null=True, blank=True, verbose_name='国家')
+    city = models.CharField(max_length=50, null=True, blank=True, verbose_name='城市')
 
     class Meta:
         verbose_name = '用户'
