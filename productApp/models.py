@@ -74,7 +74,7 @@ class Product(models.Model):
         (5, '已报废')
     ]
     
-    qrcode_id = models.CharField(max_length=100, unique=True, db_index=True, verbose_name='二维码ID')
+    qrcode_id = models.CharField(max_length=16, unique=True, db_index=True, verbose_name='二维码ID')
     product_type = models.ForeignKey(
         ProductType, on_delete=models.CASCADE, null=True, blank=True,
         related_name='products', verbose_name='产品类型'
