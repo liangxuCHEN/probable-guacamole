@@ -108,7 +108,10 @@ class Product(models.Model):
         """检查产品是否在保修期内"""
         if not self.warranty_start_date or not self.warranty_end_date:
             return False
-        now = datetime.now()
+        from django.utils import timezone
+        now = timezone.now()
+        # 补充时区的处理,系统为东8区
+        now = now + timedelta(hours=8)
         return self.warranty_start_date <= now <= self.warranty_end_date
     
     def activate(self):
@@ -147,7 +150,7 @@ class OperationRecord(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.product.qrcode_id} - {self.get_operation_type_display()} by {self.operator.username}"
+        return f"{self.product.qrcode_id} - {self.get_operation_type_display()}"
 
 
 class RepairRecord(models.Model):

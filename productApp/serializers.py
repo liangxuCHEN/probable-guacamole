@@ -106,7 +106,6 @@ class ProductActivationSerializer(serializers.Serializer):
         return data
     
 
-
 class OperationRecordSerializer(serializers.ModelSerializer):
     product_qrcode = serializers.ReadOnlyField(source='product.qrcode_id')
     operator_name = serializers.ReadOnlyField(source='operator.username')

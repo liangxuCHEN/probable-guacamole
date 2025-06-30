@@ -21,10 +21,159 @@ from .serializers import (
 )
 
 
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import ProductActivationSerializer
+from .models import Product, OperationRecord
+
+
 def warranty_registration(request):
     """产品保修登记-表单"""
     if request.method == 'GET':
         return render(request, 'warranty-registration.html')
+    
+    elif request.method == 'POST':
+        try:
+            # 处理图片上传和二维码识别
+            if 'image' not in request.FILES:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '请上传图片'
+                }, status=400)
+
+            image = request.FILES['image']
+
+            # 使用OpenCV和pyzbar进行二维码识别
+            import cv2
+            import numpy as np
+            from pyzbar.pyzbar import decode
+
+            # 读取上传的图片
+            image_array = cv2.imdecode(np.frombuffer(image.read(), np.uint8), cv2.IMREAD_COLOR)
+            decoded_objects = decode(image_array)
+
+            if not decoded_objects:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '未能识别二维码，请确保图片清晰'
+                }, status=400)
+
+            # 获取二维码内容（产品ID）
+            qrcode_id = decoded_objects[0].data.decode('utf-8')
+
+            # 查询产品信息
+            try:
+                product = Product.objects.get(qrcode_id=qrcode_id)
+                # 检查产品状态
+                if product.status == 3:  # 已激活
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': '产品已激活',
+                        'data': {
+                            'is_activated': True,
+                            'product': {
+                                'qrcode_id': product.qrcode_id,
+                                'name': product.name,
+                                'email': product.email,
+                                'activation_date': product.activation_date.strftime('%Y-%m-%d %H:%M:%S') if product.activation_date else None,
+                                'warranty_start': product.warranty_start_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
+                                'warranty_end': product.warranty_end_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
+                                'under_warranty': product.is_under_warranty(),
+                                'status': product.get_status_display()
+                            }
+                        }
+                    })
+                elif product.status == 2:  # 已出货，可以激活
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': '产品未激活',
+                        'data': {
+                            'is_activated': False,
+                            'product': {
+                                'qrcode_id': product.qrcode_id,
+                                'product_type': product.product_type.name if product.product_type else None
+                            }
+                        }
+                    })
+                else:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': '产品状态异常，无法激活'
+                    }, status=400)
+
+            except Product.DoesNotExist:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '未找到该产品'
+                }, status=404)
+                
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'处理失败：{str(e)}'
+            }, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def activate_product(request):
+    """产品激活API"""
+    serializer = ProductActivationSerializer(data=request.data)
+    if serializer.is_valid():
+        try:
+            product = get_object_or_404(
+                Product,
+                qrcode_id=serializer.validated_data['qrcode_id'],
+                status=2  # 只能激活状态为"已出货"的产品
+            )
+            
+            # 更新产品的客户信息
+            product.name = serializer.validated_data['name']
+            product.phone = serializer.validated_data.get('phone')
+            product.email = serializer.validated_data.get('email')
+            product.city = serializer.validated_data.get('city')
+            product.country = serializer.validated_data.get('country')
+            
+            if product.activate():
+                product.save()  # 保存客户信息
+                # 创建操作记录
+                OperationRecord.objects.create(
+                    product=product,
+                    operator=request.user if request.user.is_authenticated else None,
+                    operation_type=3,  # 产品激活
+                    description=f"产品被客户 {product.name} 激活"
+                )
+                return Response({
+                    'status': 'success',
+                    'message': '产品激活成功',
+                    'data': {
+                        'qrcode_id': product.qrcode_id,
+                        'name': product.name,
+                        'email': product.email,
+                        'activation_date': product.activation_date.strftime('%Y-%m-%d %H:%M:%S') if product.activation_date else None,
+                        'warranty_start': product.warranty_start_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
+                        'warranty_end': product.warranty_end_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
+                        'under_warranty': product.is_under_warranty(),
+                    }
+                })
+            return Response({
+                'status': 'error',
+                'message': '产品无法激活'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Product.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': '未找到该产品'
+            }, status=status.HTTP_404_NOT_FOUND)
+    return Response({
+        'status': 'error',
+        'message': '输入数据验证失败',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])

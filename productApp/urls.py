@@ -24,6 +24,7 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('wr', views.warranty_registration, name='warranty'),
+    path('activate-product/', views.activate_product, name='activate_product'),
     # API 路由
     path('', include(router.urls)),
 ]
