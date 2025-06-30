@@ -8,7 +8,7 @@ from rest_framework import status, viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 
 from .models import (
     User, ProductType, Product, OperationRecord, RepairRecord
@@ -19,6 +19,12 @@ from .serializers import (
     ProductActivationSerializer, OperationRecordSerializer, RepairRecordSerializer,
     RepairRecordCreateSerializer, WarrantyCheckSerializer
 )
+
+
+def warranty_registration(request):
+    """产品保修登记-表单"""
+    if request.method == 'GET':
+        return render(request, 'warranty-registration.html')
 
 
 @api_view(['POST'])

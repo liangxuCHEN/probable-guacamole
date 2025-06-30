@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Warranty Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://qiniu.yayaxueqin.cn/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- Tailwind CSS Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#FF7D00',
+                        neutral: {
+                            100: '#F5F7FA',
+                            200: '#E4E7ED',
+                            300: '#C0C4CC',
+                            400: '#909399',
+                            500: '#606266',
+                            600: '#303133',
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .shadow-custom {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+        }
+    </style>
+    
+    <!-- Import Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="font-inter bg-neutral-100 min-h-screen flex flex-col">
+    <!-- Language Switcher -->
+    <div class="fixed top-4 right-4 z-50">
+        <div class="bg-white rounded-full shadow-lg p-1 flex">
+            <button id="lang-en" class="px-3 py-1 rounded-full text-sm font-medium text-primary bg-primary/10 transition-custom">
+                EN
+            </button>
+            <button id="lang-zh" class="px-3 py-1 rounded-full text-sm font-medium text-neutral-500 transition-custom">
+                中文
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 id="title" class="text-[clamp(1.8rem,5vw,2.5rem)] font-bold text-neutral-600 mb-2">
+                Product Warranty Registration
+            </h1>
+            <p id="subtitle" class="text-neutral-400 max-w-2xl mx-auto">
+                Register your product to activate warranty and receive support services
+            </p>
+        </header>
+
+        <!-- Car Image Section -->
+        <div class="mb-10 relative overflow-hidden rounded-xl shadow-xl">
+            <img src="https://qiniu.yayaxueqin.cn/web/car-L-1.png-c" alt="Car product image" class="w-full h-auto object-cover transition-transform duration-700 hover:scale-105">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
+                <div class="p-6 text-white">
+                    <h2 id="car-title" class="text-2xl font-bold mb-1">Premium Vehicle Series</h2>
+                    <p id="car-desc" class="text-white/80">Experience superior performance and reliability</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Code Upload Section -->
+        <div id="upload-section" class="bg-white rounded-xl p-8 shadow-custom mb-10">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
+                    <i class="fa fa-qrcode text-2xl"></i>
+                </div>
+                <h3 id="upload-title" class="text-xl font-semibold text-neutral-600 mb-2">
+                    Scan Product QR Code
+                </h3>
+                <p id="upload-desc" class="text-neutral-400 max-w-md mx-auto">
+                    Take a photo of your product's QR code to begin the warranty registration process
+                </p>
+            </div>
+
+            <!-- QR Code Upload Button -->
+            <div class="flex justify-center">
+                <label for="qr-code-upload" class="cursor-pointer">
+                    <div class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-8 rounded-full shadow-md flex items-center transition-custom hover:shadow-lg">
+                        <i class="fa fa-camera mr-2"></i>
+                        <span id="upload-btn-text">Take Photo</span>
+                    </div>
+                </label>
+                <input id="qr-code-upload" type="file" accept="image/*" class="hidden">
+            </div>
+
+            <!-- Processing Animation -->
+            <div id="processing-animation" class="hidden mt-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                <p id="processing-text" class="text-neutral-500">Processing QR code...</p>
+            </div>
+
+            <!-- Upload Preview -->
+            <div id="upload-preview" class="hidden mt-8 text-center">
+                <div class="mb-4">
+                    <img id="preview-image" src="" alt="Uploaded QR code" class="max-w-full h-auto rounded-lg shadow-md mx-auto">
+                </div>
+                <div class="flex justify-center space-x-4">
+                    <button id="retake-btn" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-medium py-2 px-6 rounded-full transition-custom">
+                        <i class="fa fa-refresh mr-1"></i>
+                        <span id="retake-btn-text">Retake</span>
+                    </button>
+                    <button id="confirm-btn" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full shadow-md transition-custom hover:shadow-lg">
+                        <i class="fa fa-check mr-1"></i>
+                        <span id="confirm-btn-text">Confirm</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Section (Hidden by default) -->
+        <div id="form-section" class="bg-white rounded-xl p-8 shadow-custom mb-10 hidden">
+            <h3 id="form-title" class="text-xl font-semibold text-neutral-600 mb-6">
+                Product Registration Form
+            </h3>
+            
+            <form id="registration-form" class="space-y-6">
+                <!-- Product ID (Readonly) -->
+                <div>
+                    <label for="product-id" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="product-id-label">Product ID</span>
+                        <span class="text-primary ml-1">*</span>
+                    </label>
+                    <input type="text" id="product-id" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" readonly>
+                </div>
+                
+                <!-- Name -->
+                <div>
+                    <label for="name" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="name-label">Full Name</span>
+                        <span class="text-primary ml-1">*</span>
+                    </label>
+                    <input type="text" id="name" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" required>
+                    <p id="name-error" class="mt-1 text-sm text-red-500 hidden">
+                        <i class="fa fa-exclamation-circle mr-1"></i>
+                        <span id="name-error-text">Please enter your full name</span>
+                    </p>
+                </div>
+                
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="email-label">Email Address</span>
+                        <span class="text-primary ml-1">*</span>
+                    </label>
+                    <input type="email" id="email" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" required>
+                    <p id="email-error" class="mt-1 text-sm text-red-500 hidden">
+                        <i class="fa fa-exclamation-circle mr-1"></i>
+                        <span id="email-error-text">Please enter a valid email address</span>
+                    </p>
+                </div>
+                
+                <!-- Country -->
+                <div>
+                    <label for="country" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="country-label">Country</span>
+                    </label>
+                    <input type="text" id="country" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
+                </div>
+                
+                <!-- City -->
+                <div>
+                    <label for="city" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="city-label">City</span>
+                    </label>
+                    <input type="text" id="city" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
+                </div>
+                
+                <!-- Phone -->
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="phone-label">Phone Number</span>
+                    </label>
+                    <input type="tel" id="phone" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg shadow-md transition-custom hover:shadow-lg flex items-center justify-center">
+                        <i class="fa fa-paper-plane mr-2"></i>
+                        <span id="submit-btn-text">Submit Registration</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Result Section (Hidden by default) -->
+        <div id="result-section" class="bg-white rounded-xl p-8 shadow-custom mb-10 hidden">
+            <div id="not-activated" class="hidden">
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-secondary/10 text-secondary mb-4">
+                        <i class="fa fa-exclamation-triangle text-2xl"></i>
+                    </div>
+                    <h3 id="not-activated-title" class="text-xl font-semibold text-neutral-600 mb-2">
+                        Product Not Activated
+                    </h3>
+                    <p id="not-activated-desc" class="text-neutral-400 max-w-md mx-auto">
+                        This product has not been registered yet. Please fill out the form below to activate warranty.
+                    </p>
+                </div>
+            </div>
+            
+            <div id="activated" class="hidden">
+                <div class="text-center mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
+                        <i class="fa fa-check-circle text-2xl"></i>
+                    </div>
+                    <h3 id="activated-title" class="text-xl font-semibold text-neutral-600 mb-2">
+                        Product Warranty Information
+                    </h3>
+                </div>
+                
+                <div class="bg-neutral-50 rounded-lg p-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Product ID -->
+                        <div>
+                            <p class="text-sm text-neutral-400 mb-1">
+                                <span id="result-product-id-label">Product ID</span>
+                            </p>
+                            <p id="result-product-id" class="font-medium text-neutral-600"></p>
+                        </div>
+                        
+                        <!-- Name -->
+                        <div>
+                            <p class="text-sm text-neutral-400 mb-1">
+                                <span id="result-name-label">Registered Name</span>
+                            </p>
+                            <p id="result-name" class="font-medium text-neutral-600"></p>
+                        </div>
+                        
+                        <!-- Email -->
+                        <div>
+                            <p class="text-sm text-neutral-400 mb-1">
+                                <span id="result-email-label">Email Address</span>
+                            </p>
+                            <p id="result-email" class="font-medium text-neutral-600"></p>
+                        </div>
+                        
+                        <!-- Activation Date -->
+                        <div>
+                            <p class="text-sm text-neutral-400 mb-1">
+                                <span id="result-activation-label">Activation Date</span>
+                            </p>
+                            <p id="result-activation-date" class="font-medium text-neutral-600"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="warranty-status" class="mb-6">
+                    <!-- Warranty Status will be dynamically inserted here -->
+                </div>
+                
+                <div class="flex justify-center">
+                    <button id="restart-btn" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-medium py-2 px-6 rounded-full transition-custom">
+                        <i class="fa fa-refresh mr-1"></i>
+                        <span id="restart-btn-text">Scan Another QR Code</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-neutral-200 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p id="footer-text" class="text-neutral-400 text-sm">
+                © 2023 Premium Vehicle Warranty System. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Success Toast (Hidden by default) -->
+    <div id="success-toast" class="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center z-50">
+        <i class="fa fa-check-circle mr-2 text-xl"></i>
+        <span id="toast-message">Registration submitted successfully!</span>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Language data
+        const translations = {
+            en: {
+                title: "Product Warranty Registration",
+                subtitle: "Register your product to activate warranty and receive support services",
+                carTitle: "Batteries Series",
+                carDesc: "Experience superior performance and reliability",
+                uploadTitle: "Scan Product QR Code",
+                uploadDesc: "Take a photo of your product's QR code to begin the warranty registration process",
+                uploadBtnText: "Take Photo",
+                processingText: "Processing QR code...",
+                retakeBtnText: "Retake",
+                confirmBtnText: "Confirm",
+                formTitle: "Product Registration Form",
+                productIdLabel: "Product ID",
+                nameLabel: "Full Name",
+                emailLabel: "Email Address",
+                countryLabel: "Country",
+                cityLabel: "City",
+                phoneLabel: "Phone Number",
+                submitBtnText: "Submit Registration",
+                nameErrorText: "Please enter your full name",
+                emailErrorText: "Please enter a valid email address",
+                notActivatedTitle: "Product Not Activated",
+                notActivatedDesc: "This product has not been registered yet. Please fill out the form below to activate warranty.",
+                activatedTitle: "Product Warranty Information",
+                resultProductIdLabel: "Product ID",
+                resultNameLabel: "Registered Name",
+                resultEmailLabel: "Email Address",
+                resultActivationLabel: "Activation Date",
+                resultWarrantyStatusLabel: "Warranty Status",
+                resultWarrantyExpired: "Your warranty has expired",
+                resultWarrantyActive: "Your warranty is active",
+                resultDaysRemaining: "days remaining",
+                restartBtnText: "Scan Another QR Code",
+                toastMessage: "Registration submitted successfully!",
+                footerText: "© 2023 Premium Vehicle Batteries Warranty System. All rights reserved."
+            },
+            zh: {
+                title: "产品保修注册",
+                subtitle: "注册您的产品以激活保修并获得支持服务",
+                carTitle: "电池系列",
+                carDesc: "体验卓越的性能和可靠性",
+                uploadTitle: "扫描产品二维码",
+                uploadDesc: "拍摄产品二维码照片以开始保修注册流程",
+                uploadBtnText: "拍照上传",
+                processingText: "正在处理二维码...",
+                retakeBtnText: "重拍",
+                confirmBtnText: "确认",
+                formTitle: "产品注册表单",
+                productIdLabel: "产品ID",
+                nameLabel: "姓名",
+                emailLabel: "电子邮箱",
+                countryLabel: "国家",
+                cityLabel: "城市",
+                phoneLabel: "电话号码",
+                submitBtnText: "提交注册",
+                nameErrorText: "请输入您的姓名",
+                emailErrorText: "请输入有效的电子邮箱地址",
+                notActivatedTitle: "产品未激活",
+                notActivatedDesc: "此产品尚未注册。请填写以下表单以激活保修。",
+                activatedTitle: "产品保修信息",
+                resultProductIdLabel: "产品ID",
+                resultNameLabel: "注册姓名",
+                resultEmailLabel: "电子邮箱",
+                resultActivationLabel: "激活日期",
+                resultWarrantyStatusLabel: "保修状态",
+                resultWarrantyExpired: "您的保修已过期",
+                resultWarrantyActive: "您的保修处于有效期",
+                resultDaysRemaining: "天剩余",
+                restartBtnText: "扫描另一个二维码",
+                toastMessage: "注册提交成功！",
+                footerText: "© 2023 高级汽车电池保修系统。保留所有权利。"
+            }
+        };
+
+        // Current language
+        let currentLang = 'en';
+
+        // DOM Elements
+        const langEnBtn = document.getElementById('lang-en');
+        const langZhBtn = document.getElementById('lang-zh');
+        const qrCodeUpload = document.getElementById('qr-code-upload');
+        const uploadPreview = document.getElementById('upload-preview');
+        const previewImage = document.getElementById('preview-image');
+        const retakeBtn = document.getElementById('retake-btn');
+        const confirmBtn = document.getElementById('confirm-btn');
+        const processingAnimation = document.getElementById('processing-animation');
+        const uploadSection = document.getElementById('upload-section');
+        const formSection = document.getElementById('form-section');
+        const resultSection = document.getElementById('result-section');
+        const notActivated = document.getElementById('not-activated');
+        const activated = document.getElementById('activated');
+        const productIdInput = document.getElementById('product-id');
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const nameError = document.getElementById('name-error');
+        const emailError = document.getElementById('email-error');
+        const registrationForm = document.getElementById('registration-form');
+        const restartBtn = document.getElementById('restart-btn');
+        const successToast = document.getElementById('success-toast');
+        const toastMessage = document.getElementById('toast-message');
+
+        // Set up language switcher
+        langEnBtn.addEventListener('click', () => {
+            if (currentLang !== 'en') {
+                currentLang = 'en';
+                updateLanguage();
+                langEnBtn.classList.add('bg-primary/10', 'text-primary');
+                langEnBtn.classList.remove('text-neutral-500');
+                langZhBtn.classList.add('text-neutral-500');
+                langZhBtn.classList.remove('bg-primary/10', 'text-primary');
+            }
+        });
+
+        langZhBtn.addEventListener('click', () => {
+            if (currentLang !== 'zh') {
+                currentLang = 'zh';
+                updateLanguage();
+                langZhBtn.classList.add('bg-primary/10', 'text-primary');
+                langZhBtn.classList.remove('text-neutral-500');
+                langEnBtn.classList.add('text-neutral-500');
+                langEnBtn.classList.remove('bg-primary/10', 'text-primary');
+            }
+        });
+
+        // Update language function
+        function updateLanguage() {
+            const t = translations[currentLang];
+            
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('subtitle').textContent = t.subtitle;
+            document.getElementById('car-title').textContent = t.carTitle;
+            document.getElementById('car-desc').textContent = t.carDesc;
+            document.getElementById('upload-title').textContent = t.uploadTitle;
+            document.getElementById('upload-desc').textContent = t.uploadDesc;
+            document.getElementById('upload-btn-text').textContent = t.uploadBtnText;
+            document.getElementById('processing-text').textContent = t.processingText;
+            document.getElementById('retake-btn-text').textContent = t.retakeBtnText;
+            document.getElementById('confirm-btn-text').textContent = t.confirmBtnText;
+            document.getElementById('form-title').textContent = t.formTitle;
+            document.getElementById('product-id-label').textContent = t.productIdLabel;
+            document.getElementById('name-label').textContent = t.nameLabel;
+            document.getElementById('email-label').textContent = t.emailLabel;
+            document.getElementById('country-label').textContent = t.countryLabel;
+            document.getElementById('city-label').textContent = t.cityLabel;
+            document.getElementById('phone-label').textContent = t.phoneLabel;
+            document.getElementById('submit-btn-text').textContent = t.submitBtnText;
+            document.getElementById('name-error-text').textContent = t.nameErrorText;
+            document.getElementById('email-error-text').textContent = t.emailErrorText;
+            document.getElementById('not-activated-title').textContent = t.notActivatedTitle;
+            document.getElementById('not-activated-desc').textContent = t.notActivatedDesc;
+            document.getElementById('activated-title').textContent = t.activatedTitle;
+            document.getElementById('result-product-id-label').textContent = t.resultProductIdLabel;
+            document.getElementById('result-name-label').textContent = t.resultNameLabel;
+            document.getElementById('result-email-label').textContent = t.resultEmailLabel;
+            document.getElementById('result-activation-label').textContent = t.resultActivationLabel;
+            document.getElementById('restart-btn-text').textContent = t.restartBtnText;
+            document.getElementById('toast-message').textContent = t.toastMessage;
+            document.getElementById('footer-text').textContent = t.footerText;
+        }
+
+        // QR Code Upload Handling
+        qrCodeUpload.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    uploadPreview.classList.remove('hidden');
+                }
+                
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Retake Photo Button
+        retakeBtn.addEventListener('click', function() {
+            qrCodeUpload.value = '';
+            uploadPreview.classList.add('hidden');
+        });
+
+        // Confirm Upload Button
+        confirmBtn.addEventListener('click', function() {
+            uploadPreview.classList.add('hidden');
+            processingAnimation.classList.remove('hidden');
+            
+            // Simulate QR code processing and API call
+            setTimeout(function() {
+                processingAnimation.classList.add('hidden');
+                
+                // Simulate 50% chance of product being activated
+                const isActivated = Math.random() > 0.5;
+                
+                if (isActivated) {
+                    showActivatedResult();
+                } else {
+                    showNotActivatedResult();
+                }
+            }, 2000);
+        });
+
+        // Show Not Activated Result
+        function showNotActivatedResult() {
+            uploadSection.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+            notActivated.classList.remove('hidden');
+            formSection.classList.remove('hidden');
+            
+            // Generate random product ID
+            const productId = 'PROD-' + Math.floor(100000 + Math.random() * 900000);
+            productIdInput.value = productId;
+        }
+
+        // Show Activated Result
+        function showActivatedResult() {
+            uploadSection.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+            activated.classList.remove('hidden');
+            formSection.classList.add('hidden');
+            
+            // Generate random product ID
+            const productId = 'PROD-' + Math.floor(100000 + Math.random() * 900000);
+            document.getElementById('result-product-id').textContent = productId;
+            
+            // Generate random name and email
+            const names = ['John Doe', 'Jane Smith', 'Robert Johnson', 'Emily Davis'];
+            const randomName = names[Math.floor(Math.random() * names.length)];
+            document.getElementById('result-name').textContent = randomName;
+            
+            const email = randomName.toLowerCase().replace(' ', '.') + '@example.com';
+            document.getElementById('result-email').textContent = email;
+            
+            // Generate random activation date (within last year)
+            const today = new Date();
+            const oneYearAgo = new Date(today);
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            
+            const randomDate = new Date(oneYearAgo.getTime() + Math.random() * (today.getTime() - oneYearAgo.getTime()));
+            const formattedDate = randomDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('result-activation-date').textContent = formattedDate;
+            
+            // Calculate warranty status (1 year warranty)
+            const warrantyExpiry = new Date(randomDate);
+            warrantyExpiry.setFullYear(warrantyExpiry.getFullYear() + 1);
+            
+            const daysRemaining = Math.ceil((warrantyExpiry - today) / (1000 * 60 * 60 * 24));
+            
+            const warrantyStatus = document.getElementById('warranty-status');
+            warrantyStatus.innerHTML = '';
+            
+            let statusHTML = '';
+            if (daysRemaining > 0) {
+                statusHTML = `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                        <div class="flex items-center justify-center text-green-600 mb-2">
+                            <i class="fa fa-check-circle text-xl mr-2"></i>
+                            <span class="font-medium">${translations[currentLang].resultWarrantyActive}</span>
+                        </div>
+                        <p class="text-neutral-600">${daysRemaining} ${translations[currentLang].resultDaysRemaining}</p>
+                    </div>
+                `;
+            } else {
+                statusHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                        <div class="flex items-center justify-center text-red-600 mb-2">
+                            <i class="fa fa-times-circle text-xl mr-2"></i>
+                            <span class="font-medium">${translations[currentLang].resultWarrantyExpired}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            warrantyStatus.innerHTML = statusHTML;
+        }
+
+        // Form Validation
+        registrationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            let isValid = true;
+            
+            // Validate name
+            if (nameInput.value.trim() === '') {
+                nameError.classList.remove('hidden');
+                nameInput.classList.add('border-red-300');
+                isValid = false;
+            } else {
+                nameError.classList.add('hidden');
+                nameInput.classList.remove('border-red-300');
+            }
+            
+            // Validate email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailInput.value.trim())) {
+                emailError.classList.remove('hidden');
+                emailInput.classList.add('border-red-300');
+                isValid = false;
+            } else {
+                emailError.classList.add('hidden');
+                emailInput.classList.remove('border-red-300');
+            }
+            
+            if (isValid) {
+                // Simulate form submission
+                setTimeout(function() {
+                    showSuccessToast();
+                    showActivatedResult();
+                }, 1000);
+            }
+        });
+
+        // Restart Button
+        restartBtn.addEventListener('click', function() {
+            uploadSection.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+            notActivated.classList.add('hidden');
+            activated.classList.add('hidden');
+            formSection.classList.add('hidden');
+            uploadPreview.classList.add('hidden');
+            qrCodeUpload.value = '';
+            
+            // Clear form fields
+            nameInput.value = '';
+            emailInput.value = '';
+            document.getElementById('country').value = '';
+            document.getElementById('city').value = '';
+            document.getElementById('phone').value = '';
+            
+            // Remove error states
+            nameError.classList.add('hidden');
+            emailError.classList.add('hidden');
+            nameInput.classList.remove('border-red-300');
+            emailInput.classList.remove('border-red-300');
+        });
+
+        // Show Success Toast
+        function showSuccessToast() {
+            successToast.classList.remove('translate-y-20', 'opacity-0');
+            successToast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(function() {
+                successToast.classList.add('translate-y-20', 'opacity-0');
+                successToast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        // Initialize language
+        updateLanguage();
+    </script>
+</body>
+</html>
