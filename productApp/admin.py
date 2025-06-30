@@ -50,7 +50,7 @@ class ProductAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('基本信息', {
-            'fields': ('qrcode_id', 'product_type', 'status')
+            'fields': ('qrcode_id', 'product_type', 'factory_remark', 'status')
         }),
         ('代理商信息', {
             'fields': ('agent', 'shipping_date')

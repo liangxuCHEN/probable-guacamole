@@ -50,7 +50,8 @@ class ProductType(models.Model):
     model_number = models.CharField(max_length=50, verbose_name='型号')
     specifications = models.TextField(null=True, blank=True, verbose_name='规格')
     description = models.TextField(null=True, blank=True, verbose_name='描述')
-    warranty_period = models.IntegerField(default=365, verbose_name='保修期(天)')
+    # 保修期默认3年
+    warranty_period = models.IntegerField(default=1095, verbose_name='保修期(天)')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
@@ -95,6 +96,8 @@ class Product(models.Model):
     city = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户城市')
     country = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户国家')
     email = models.EmailField(null=True, blank=True, verbose_name='客户邮箱')
+    # 厂家备注
+    factory_remark = models.TextField(null=True, blank=True, verbose_name='厂家备注')
 
     class Meta:
         verbose_name = '产品'
