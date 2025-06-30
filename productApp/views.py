@@ -50,11 +50,30 @@ def warranty_registration(request):
             # 使用OpenCV和pyzbar进行二维码识别
             import cv2
             import numpy as np
+            import os
+            import tempfile
             from pyzbar.pyzbar import decode
-
-            # 读取上传的图片
-            image_array = cv2.imdecode(np.frombuffer(image.read(), np.uint8), cv2.IMREAD_COLOR)
-            decoded_objects = decode(image_array)
+            
+            # 先保存图片到临时文件
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                for chunk in image.chunks():
+                    temp_file.write(chunk)
+                temp_file_path = temp_file.name
+            
+            try:
+                # 读取保存的图片
+                image_array = cv2.imread(temp_file_path)
+                if image_array is None:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': '图片读取失败，请重新上传'
+                    }, status=400)
+                
+                decoded_objects = decode(image_array)
+            finally:
+                # 删除临时文件
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
 
             if not decoded_objects:
                 return JsonResponse({
