@@ -2,6 +2,12 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord
 
+# 修改django管理的名字
+admin.site.site_header = '产品管理系统'
+admin.site.site_title = '产品管理系统'
+admin.site.index_title = '产品管理系统'
+admin.site.empty_value_display = '未设置'
+
 
 class WechatProfileInline(admin.StackedInline):
     model = WechatProfile
@@ -39,6 +45,10 @@ class ProductTypeAdmin(admin.ModelAdmin):
     ordering = ('-created_at',)
 
 
+from django.shortcuts import render, redirect
+from django.urls import path
+from django.contrib import messages
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ('qrcode_id', 'product_type', 'agent', 'name', 'phone', 'email', 'status', 
@@ -47,6 +57,73 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('qrcode_id', 'product_type__name', 'agent__username', 'name', 'phone', 'email')
     readonly_fields = ('created_at', 'updated_at', 'warranty_start_date', 'warranty_end_date')
     ordering = ('-created_at',)
+    change_list_template = 'admin/productApp/product/change_list.html'
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('bulk-create/', self.admin_site.admin_view(self.bulk_create_view), name='product_bulk_create'),
+        ]
+        return custom_urls + urls
+
+    def bulk_create_view(self, request):
+        if request.method == 'POST':
+            qrcode_ids = request.POST.get('qrcode_ids', '').strip().split('\n')
+            product_type_id = request.POST.get('product_type')
+            factory_remark = request.POST.get('factory_remark', '').strip()
+
+            if not qrcode_ids or not product_type_id:
+                messages.error(request, '请提供二维码ID列表和产品类型')
+                return redirect('.')
+
+            try:
+                product_type = ProductType.objects.get(id=product_type_id)
+                created_count = 0
+                skipped_count = 0
+                error_qrcodes = []
+
+                for qrcode_id in qrcode_ids:
+                    qrcode_id = qrcode_id.strip()
+                    if not qrcode_id:
+                        continue
+
+                    # 检查是否已存在相同的qrcode_id
+                    if Product.objects.filter(qrcode_id=qrcode_id).exists():
+                        skipped_count += 1
+                        error_qrcodes.append(f"{qrcode_id} (已存在)")
+                        continue
+
+                    try:
+                        Product.objects.create(
+                            qrcode_id=qrcode_id,
+                            product_type=product_type,
+                            factory_remark=factory_remark
+                        )
+                        created_count += 1
+                    except Exception as e:
+                        error_qrcodes.append(f"{qrcode_id} ({str(e)})")
+
+                if created_count > 0:
+                    messages.success(request, f'成功创建 {created_count} 个产品')
+                if skipped_count > 0:
+                    messages.warning(request, f'跳过 {skipped_count} 个已存在的产品')
+                if error_qrcodes:
+                    messages.error(request, f'以下ID创建失败：{", ".join(error_qrcodes)}')
+
+            except ProductType.DoesNotExist:
+                messages.error(request, '无效的产品类型')
+            except Exception as e:
+                messages.error(request, f'创建产品时发生错误：{str(e)}')
+
+            return redirect('admin:productApp_product_changelist')
+
+        # GET请求显示表单
+        context = {
+            'title': '批量创建产品',
+            'product_types': ProductType.objects.all(),
+            **self.admin_site.each_context(request),
+        }
+        return render(request, 'admin/productApp/product/bulk_create.html', context)
     
     fieldsets = (
         ('基本信息', {
