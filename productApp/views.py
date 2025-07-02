@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -23,14 +24,17 @@ from .serializers import (
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import ProductActivationSerializer
 from .models import Product, OperationRecord
 
-
+@csrf_exempt
+@api_view(['GET', 'POST'])
+@authentication_classes([])  # 禁用JWT认证
+@permission_classes([AllowAny])
 def warranty_registration(request):
     """产品保修登记-表单"""
     if request.method == 'GET':
@@ -162,7 +166,7 @@ def activate_product(request):
                 # 创建操作记录
                 OperationRecord.objects.create(
                     product=product,
-                    operator=request.user if request.user.is_authenticated else None,
+                    operator=None,  # 静态网站不需要用户验证
                     operation_type=3,  # 产品激活
                     description=f"产品被客户 {product.name} 激活"
                 )
