@@ -521,12 +521,22 @@
                 } else {
                     // 显示错误信息
                     showErrorToast(data.message || '处理失败，请重试');
+                    // 重新显示上传预览区域，允许用户重试
+                    uploadPreview.classList.remove('hidden');
+                    // 允许重新选择文件
+                    qrCodeUpload.value = '';
                 }
             })
             .catch(error => {
+                // 隐藏处理动画
                 processingAnimation.classList.add('hidden');
+                // 显示错误提示
                 showErrorToast('网络错误，请重试');
                 console.error('Error:', error);
+                // 重新显示上传预览区域
+                uploadPreview.classList.remove('hidden');
+                // 允许重新选择文件
+                qrCodeUpload.value = '';
             });
         });
 
