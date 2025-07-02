@@ -26,16 +26,17 @@ SECRET_KEY = 'django-insecure-l)s05!$*oo7cg^8)3oidp%&m)157z32!8r(a(utf$vlwsogb1@
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
+CORS_ALLOW_CREDENTIALS = True
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # Vite 默认开发服务器地址
-    'http://127.0.0.1:5173',
+    'http://127.0.0.1',
     'http://127.0.0.1:5173',
     'http://localhost:5173',
-    'http://47.120.43.183'
+    'http://47.120.43.183',
+    'http://qiniu.yayaxueqin.cn'
 ]
-CORS_ALLOW_CREDENTIALS = True
+
 
 # Application definition
 
@@ -46,16 +47,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'productApp.apps.ProductappConfig',
-    'rest_framework',
-    'corsheaders'
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
