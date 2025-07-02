@@ -146,6 +146,8 @@ def warranty_registration(request):
 def activate_product(request):
     """产品激活API"""
     serializer = ProductActivationSerializer(data=request.data)
+    print(serializer.is_valid())
+    print(serializer.errors)
     if serializer.is_valid():
         try:
             product = get_object_or_404(
@@ -166,7 +168,7 @@ def activate_product(request):
                 # 创建操作记录
                 OperationRecord.objects.create(
                     product=product,
-                    operator=None,  # 静态网站不需要用户验证
+                    operator=f"client-{product.name}",
                     operation_type=3,  # 产品激活
                     description=f"产品被客户 {product.name} 激活"
                 )
@@ -308,7 +310,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         product = serializer.save()
         OperationRecord.objects.create(
             product=product,
-            operator=self.request.user,
+            operator=f"user-{self.request.user.username}",
             operation_type=1,  # 创建产品
             description=f"创建产品 {product.qrcode_id}"
         )
@@ -332,7 +334,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 operation_records = [
                     OperationRecord(
                         product=product,
-                        operator=request.user,
+                        operator=f"user-{self.request.user.username}",
                         operation_type=1,
                         description=f"批量创建产品 {product.qrcode_id}"
                     ) for product in created_products
@@ -375,7 +377,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 operation_records = [
                     OperationRecord(
                         product=product,
-                        operator=request.user,
+                        operator=f"user-{self.request.user.username}",
                         operation_type=2,  # 产品出货
                         description=f"产品出货给代理商 {agent.username}"
                     ) for product in products
@@ -411,7 +413,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 # 创建操作记录
                 OperationRecord.objects.create(
                     product=product,
-                    operator=request.user,
+                    operator=f"user-{self.request.user.username}",
                     operation_type=3,  # 产品激活
                     description=f"产品被客户 {product.name} 激活"
                 )
@@ -501,7 +503,7 @@ class RepairRecordViewSet(viewsets.ModelViewSet):
                 # 创建操作记录
                 OperationRecord.objects.create(
                     product=product,
-                    operator=self.request.user,
+                    operator=f"user-{self.request.user.username}",
                     operation_type=4,  # 维修登记
                     description=f"客户 {product.name} 的产品进入维修，原因：{repair_record.repair_reason}"
                 )
@@ -531,7 +533,7 @@ class RepairRecordViewSet(viewsets.ModelViewSet):
             # 创建操作记录
             OperationRecord.objects.create(
                 product=product,
-                operator=request.user,
+                operator=f"user-{self.request.user.username}",
                 operation_type=5,  # 维修完成
                 description=f"产品维修完成，解决方案：{repair_record.repair_solution}"
             )

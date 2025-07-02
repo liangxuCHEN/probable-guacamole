@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from datetime import datetime, timedelta
-
+from django.utils import timezone
 
 # Create your models here.
 class User(AbstractUser):
@@ -111,11 +111,9 @@ class Product(models.Model):
         """检查产品是否在保修期内"""
         if not self.warranty_start_date or not self.warranty_end_date:
             return False
-        from django.utils import timezone
-        now = timezone.now()
-        # 补充时区的处理,系统为东8区
-        now = now + timedelta(hours=8)
-        return self.warranty_start_date <= now <= self.warranty_end_date
+
+        now = datetime.now()
+        return now <= self.warranty_end_date
     
     def activate(self):
         """激活产品"""
@@ -142,7 +140,7 @@ class OperationRecord(models.Model):
     ]
     
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='operation_records', verbose_name='产品')
-    operator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='operations', verbose_name='操作人')
+    operator = models.CharField(max_length=50, verbose_name='操作人')
     operation_type = models.IntegerField(choices=OPERATION_CHOICES, verbose_name='操作类型')
     description = models.TextField(null=True, blank=True, verbose_name='操作描述')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='操作时间')

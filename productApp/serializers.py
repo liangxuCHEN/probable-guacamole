@@ -92,28 +92,27 @@ class ProductShippingSerializer(serializers.Serializer):
 class ProductActivationSerializer(serializers.Serializer):
     qrcode_id = serializers.CharField(max_length=100)
     name = serializers.CharField(max_length=50)
-    phone = serializers.CharField(max_length=20)
-    email = serializers.EmailField(required=False)
-    city = serializers.CharField(max_length=50, required=False)
-    country = serializers.CharField(max_length=50, required=False)
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    email = serializers.EmailField()
+    city = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    country = serializers.CharField(max_length=50, required=False, allow_blank=True)
 
     def validate(self, data):
         """
         验证至少提供了姓名和电话
         """
-        if not data.get('name') or not data.get('phone'):
-            raise serializers.ValidationError("客户姓名和电话是必填项")
+        if not data.get('name') or not data.get('email'):
+            raise serializers.ValidationError("客户姓名和邮箱是必填项")
         return data
     
 
 class OperationRecordSerializer(serializers.ModelSerializer):
     product_qrcode = serializers.ReadOnlyField(source='product.qrcode_id')
-    operator_name = serializers.ReadOnlyField(source='operator.username')
     operation_type_display = serializers.CharField(source='get_operation_type_display', read_only=True)
     
     class Meta:
         model = OperationRecord
-        fields = ['id', 'product', 'product_qrcode', 'operator', 'operator_name', 
+        fields = ['id', 'product', 'product_qrcode', 'operator', 'operator',
                  'operation_type', 'operation_type_display', 'description', 'created_at']
         read_only_fields = ['created_at']
 
