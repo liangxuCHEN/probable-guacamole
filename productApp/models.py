@@ -112,8 +112,14 @@ class Product(models.Model):
         if not self.warranty_start_date or not self.warranty_end_date:
             return False
 
-        now = datetime.now()
-        return now <= self.warranty_end_date
+        now = timezone.now()
+        # 确保 warranty_end_date 也是 timezone-aware
+        if timezone.is_naive(self.warranty_end_date):
+            warranty_end = timezone.make_aware(self.warranty_end_date)
+        else:
+            warranty_end = self.warranty_end_date
+
+        return now <= warranty_end
     
     def activate(self):
         """激活产品"""
