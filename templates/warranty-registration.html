@@ -504,6 +504,7 @@
             // 发送请求到后端API
             fetch(API_HOST + '/api/wr', {
                 method: 'POST',
+                credentials: 'include',  // 包含凭证
                 body: formData
             })
             .then(response => response.json())
@@ -639,8 +640,10 @@
                 // 发送激活请求
                 fetch(API_HOST + '/api/activate-product/', {
                     method: 'POST',
+                    credentials: 'include',  // 包含凭证
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                     },
                     body: JSON.stringify(formData)
                 })

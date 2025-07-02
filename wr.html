@@ -6,7 +6,7 @@
     <title>Product Warranty Registration</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://qiniu.yayaxueqin.cn/css/font-awesome.min.css" rel="stylesheet">
-    
+
     <!-- Tailwind CSS Configuration -->
     <script>
         tailwind.config = {
@@ -31,7 +31,7 @@
             }
         }
     </script>
-    
+
     <style type="text/tailwindcss">
         @layer utilities {
             .content-auto {
@@ -48,7 +48,7 @@
             }
         }
     </style>
-    
+
     <!-- Import Inter font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -144,7 +144,7 @@
             <h3 id="form-title" class="text-xl font-semibold text-neutral-600 mb-6">
                 Product Registration Form
             </h3>
-            
+
             <form id="registration-form" class="space-y-6">
                 <!-- Product ID (Readonly) -->
                 <div>
@@ -154,7 +154,7 @@
                     </label>
                     <input type="text" id="product-id" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" readonly>
                 </div>
-                
+
                 <!-- Name -->
                 <div>
                     <label for="name" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -167,7 +167,7 @@
                         <span id="name-error-text">Please enter your full name</span>
                     </p>
                 </div>
-                
+
                 <!-- Email -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -180,7 +180,7 @@
                         <span id="email-error-text">Please enter a valid email address</span>
                     </p>
                 </div>
-                
+
                 <!-- Country -->
                 <div>
                     <label for="country" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -188,7 +188,7 @@
                     </label>
                     <input type="text" id="country" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
                 </div>
-                
+
                 <!-- City -->
                 <div>
                     <label for="city" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -196,7 +196,7 @@
                     </label>
                     <input type="text" id="city" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
                 </div>
-                
+
                 <!-- Phone -->
                 <div>
                     <label for="phone" class="block text-sm font-medium text-neutral-500 mb-1">
@@ -204,7 +204,7 @@
                     </label>
                     <input type="tel" id="phone" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
                 </div>
-                
+
                 <!-- Submit Button -->
                 <div class="pt-4">
                     <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg shadow-md transition-custom hover:shadow-lg flex items-center justify-center">
@@ -230,7 +230,7 @@
                     </p>
                 </div>
             </div>
-            
+
             <div id="activated" class="hidden">
                 <div class="text-center mb-6">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-500 mb-4">
@@ -240,7 +240,7 @@
                         Product Warranty Information
                     </h3>
                 </div>
-                
+
                 <div class="bg-neutral-50 rounded-lg p-6 mb-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Product ID -->
@@ -250,7 +250,7 @@
                             </p>
                             <p id="result-product-id" class="font-medium text-neutral-600"></p>
                         </div>
-                        
+
                         <!-- Name -->
                         <div>
                             <p class="text-sm text-neutral-400 mb-1">
@@ -258,7 +258,7 @@
                             </p>
                             <p id="result-name" class="font-medium text-neutral-600"></p>
                         </div>
-                        
+
                         <!-- Email -->
                         <div>
                             <p class="text-sm text-neutral-400 mb-1">
@@ -266,7 +266,7 @@
                             </p>
                             <p id="result-email" class="font-medium text-neutral-600"></p>
                         </div>
-                        
+
                         <!-- Activation Date -->
                         <div>
                             <p class="text-sm text-neutral-400 mb-1">
@@ -276,11 +276,11 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div id="warranty-status" class="mb-6">
                     <!-- Warranty Status will be dynamically inserted here -->
                 </div>
-                
+
                 <div class="flex justify-center">
                     <button id="restart-btn" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-medium py-2 px-6 rounded-full transition-custom">
                         <i class="fa fa-refresh mr-1"></i>
@@ -387,7 +387,7 @@
         // Current language
         let currentLang = 'en';
 
-        let API_HOST = 'http://47.120.43.183'
+        let API_HOST = 'http://47.120.183.22'
 
         // DOM Elements
         const langEnBtn = document.getElementById('lang-en');
@@ -439,7 +439,7 @@
         // Update language function
         function updateLanguage() {
             const t = translations[currentLang];
-            
+
             document.getElementById('title').textContent = t.title;
             document.getElementById('subtitle').textContent = t.subtitle;
             document.getElementById('car-title').textContent = t.carTitle;
@@ -476,12 +476,12 @@
         qrCodeUpload.addEventListener('change', function(e) {
             if (e.target.files && e.target.files[0]) {
                 const reader = new FileReader();
-                
+
                 reader.onload = function(e) {
                     previewImage.src = e.target.result;
                     uploadPreview.classList.remove('hidden');
                 }
-                
+
                 reader.readAsDataURL(e.target.files[0]);
             }
         });
@@ -496,20 +496,21 @@
         confirmBtn.addEventListener('click', function() {
             uploadPreview.classList.add('hidden');
             processingAnimation.classList.remove('hidden');
-            
+
             // 创建FormData对象，用于上传图片
             const formData = new FormData();
             formData.append('image', qrCodeUpload.files[0]);
-            
+
             // 发送请求到后端API
             fetch(API_HOST + '/api/wr', {
                 method: 'POST',
+                credentials: 'include',  // 包含凭证
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
                 processingAnimation.classList.add('hidden');
-                
+
                 if (data.status === 'success') {
                     if (data.data.is_activated) {
                         // 产品已激活，显示产品信息
@@ -521,12 +522,22 @@
                 } else {
                     // 显示错误信息
                     showErrorToast(data.message || '处理失败，请重试');
+                    // 重新显示上传预览区域，允许用户重试
+                    uploadPreview.classList.remove('hidden');
+                    // 允许重新选择文件
+                    qrCodeUpload.value = '';
                 }
             })
             .catch(error => {
+                // 隐藏处理动画
                 processingAnimation.classList.add('hidden');
+                // 显示错误提示
                 showErrorToast('网络错误，请重试');
                 console.error('Error:', error);
+                // 重新显示上传预览区域
+                uploadPreview.classList.remove('hidden');
+                // 允许重新选择文件
+                qrCodeUpload.value = '';
             });
         });
 
@@ -536,7 +547,7 @@
             resultSection.classList.remove('hidden');
             notActivated.classList.remove('hidden');
             formSection.classList.remove('hidden');
-            
+
             // 设置产品ID
             productIdInput.value = product.qrcode_id;
         }
@@ -547,7 +558,7 @@
             resultSection.classList.remove('hidden');
             activated.classList.remove('hidden');
             formSection.classList.add('hidden');
-            
+
             // 填充产品信息
             document.getElementById('result-product-id').textContent = product.qrcode_id;
             document.getElementById('result-name').textContent = product.name;
@@ -557,16 +568,16 @@
                 month: 'long',
                 day: 'numeric'
             });
-            
+
             // 显示保修状态
             const warrantyStatus = document.getElementById('warranty-status');
             warrantyStatus.innerHTML = '';
-            
+
             if (product.under_warranty) {
                 const warrantyEnd = new Date(product.warranty_end);
                 const today = new Date();
                 const daysRemaining = Math.ceil((warrantyEnd - today) / (1000 * 60 * 60 * 24));
-                
+
                 warrantyStatus.innerHTML = `
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                         <div class="flex items-center justify-center text-green-600 mb-2">
@@ -591,9 +602,9 @@
         // Form Validation and Submission
         registrationForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             let isValid = true;
-            
+
             // Validate name
             if (nameInput.value.trim() === '') {
                 nameError.classList.remove('hidden');
@@ -603,7 +614,7 @@
                 nameError.classList.add('hidden');
                 nameInput.classList.remove('border-red-300');
             }
-            
+
             // Validate email
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(emailInput.value.trim())) {
@@ -614,7 +625,7 @@
                 emailError.classList.add('hidden');
                 emailInput.classList.remove('border-red-300');
             }
-            
+
             if (isValid) {
                 // 准备表单数据
                 const formData = {
@@ -625,12 +636,14 @@
                     city: document.getElementById('city').value.trim(),
                     country: document.getElementById('country').value.trim()
                 };
-                
+
                 // 发送激活请求
                 fetch(API_HOST + '/api/activate-product/', {
                     method: 'POST',
+                    credentials: 'include',  // 包含凭证
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                     },
                     body: JSON.stringify(formData)
                 })
@@ -656,14 +669,14 @@
             toast.classList.remove('bg-green-500');
             toast.classList.add('bg-red-500');
             document.getElementById('toast-message').textContent = message;
-            
+
             toast.classList.remove('translate-y-20', 'opacity-0');
             toast.classList.add('translate-y-0', 'opacity-100');
-            
+
             setTimeout(function() {
                 toast.classList.add('translate-y-20', 'opacity-0');
                 toast.classList.remove('translate-y-0', 'opacity-100');
-                
+
                 // Reset toast style after animation
                 setTimeout(function() {
                     toast.classList.remove('bg-red-500');
@@ -681,14 +694,14 @@
             formSection.classList.add('hidden');
             uploadPreview.classList.add('hidden');
             qrCodeUpload.value = '';
-            
+
             // Clear form fields
             nameInput.value = '';
             emailInput.value = '';
             document.getElementById('country').value = '';
             document.getElementById('city').value = '';
             document.getElementById('phone').value = '';
-            
+
             // Remove error states
             nameError.classList.add('hidden');
             emailError.classList.add('hidden');
@@ -700,7 +713,7 @@
         function showSuccessToast() {
             successToast.classList.remove('translate-y-20', 'opacity-0');
             successToast.classList.add('translate-y-0', 'opacity-100');
-            
+
             setTimeout(function() {
                 successToast.classList.add('translate-y-20', 'opacity-0');
                 successToast.classList.remove('translate-y-0', 'opacity-100');
