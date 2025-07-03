@@ -34,10 +34,13 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://localhost:5173',
     'http://47.120.43.183',
-    'http://*.yayaxueqin.cn',
+    'http://qr.yayaxueqin.cn',
+    'https://qr.yayaxueqin.cn',
     'https://*.yayaxueqin.cn'
 ]
 
+SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
