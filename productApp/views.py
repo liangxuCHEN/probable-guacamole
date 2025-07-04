@@ -320,11 +320,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer = ProductBulkCreateSerializer(data=request.data)
         if serializer.is_valid():
             product_type = get_object_or_404(ProductType, id=serializer.validated_data['product_type_id'])
+            remark = serializer.validated_data.get('remark', '')
             products = []
             for qrcode_id in serializer.validated_data['qrcode_ids']:
                 products.append(Product(
                     qrcode_id=qrcode_id,
-                    product_type=product_type
+                    product_type=product_type,
+                    factory_remark=remark
                 ))
             
             with transaction.atomic():

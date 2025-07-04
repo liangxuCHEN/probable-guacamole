@@ -80,6 +80,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 
 class ProductBulkCreateSerializer(serializers.Serializer):
     product_type_id = serializers.IntegerField()
+    remark = serializers.CharField(max_length=255, required=False, allow_blank=True)
     qrcode_ids = serializers.ListField(child=serializers.CharField(max_length=100))
 
 

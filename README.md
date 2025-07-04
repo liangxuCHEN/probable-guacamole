@@ -160,7 +160,8 @@
 POST /api/products/bulk_create/
 {
   "product_type_id": 1,
-  "qrcode_ids": ["QR001", "QR002", "QR003"]
+  "qrcode_ids": ["QR001", "QR002", "QR003"], 
+  "remark": "备注信息"
 }
 ```
 
