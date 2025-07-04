@@ -154,6 +154,26 @@
 
 ## 使用示例
 
+### 查询供应商
+
+```json
+GET /api/users/agents/
+
+{
+    "status": "success",
+    "data": [
+        {
+            "id": 2,
+            "username": "广州代理",
+            "email": "chenliangxu68@gmail.com",
+            "phone": "0658214120",
+            "user_type": 1,
+            "wechat_profile": null
+        }
+    ]
+}
+```
+
 ### 批量创建产品
 
 ```json

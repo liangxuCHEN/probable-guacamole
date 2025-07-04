@@ -262,6 +262,16 @@ class UserViewSet(viewsets.ModelViewSet):
         """获取当前登录用户信息"""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+        
+    @action(detail=False, methods=['get'])
+    def agents(self, request):
+        """获取所有代理商用户列表"""
+        agents = User.objects.filter(user_type=User.AGENT)
+        serializer = self.get_serializer(agents, many=True)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        })
 
 
 class ProductTypeViewSet(viewsets.ModelViewSet):
