@@ -35,12 +35,14 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://47.120.43.183',
     'http://qr.yayaxueqin.cn',
+    'http://qr.notebay.cn',
     'https://qr.yayaxueqin.cn',
+    'https://qr.notebay.cn',
     'https://*.yayaxueqin.cn'
 ]
 
-# SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
