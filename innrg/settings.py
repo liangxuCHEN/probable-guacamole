@@ -38,7 +38,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://qr.notebay.cn',
     'https://qr.yayaxueqin.cn',
     'https://qr.notebay.cn',
-    'https://*.yayaxueqin.cn'
+    'https://*.yayaxueqin.cn',
+    'https://*.notebay.cn'
 ]
 
 SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
