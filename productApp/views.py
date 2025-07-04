@@ -146,8 +146,6 @@ def warranty_registration(request):
 def activate_product(request):
     """产品激活API"""
     serializer = ProductActivationSerializer(data=request.data)
-    print(serializer.is_valid())
-    print(serializer.errors)
     if serializer.is_valid():
         try:
             product = get_object_or_404(
@@ -205,6 +203,7 @@ def activate_product(request):
 @permission_classes([AllowAny])
 def login_view(request):
     """用户登录接口"""
+    print(request.data)
     serializer = UserLoginSerializer(data=request.data)
     if serializer.is_valid():
         username = serializer.validated_data['username']
@@ -463,6 +462,29 @@ class ProductViewSet(viewsets.ModelViewSet):
                 'data': results
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=False, methods=['get'])
+    def get_by_qrcode(self, request):
+        """通过qrcode_id查询产品信息"""
+        qrcode_id = request.query_params.get('qrcode_id')
+        if not qrcode_id:
+            return Response({
+                'status': 'error',
+                'message': '请提供qrcode_id参数'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            product = get_object_or_404(Product, qrcode_id=qrcode_id)
+            serializer = self.get_serializer(product)
+            return Response({
+                'status': 'success',
+                'data': serializer.data
+            })
+        except Product.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': '未找到该产品'
+            }, status=status.HTTP_404_NOT_FOUND)
 
 
 class OperationRecordViewSet(viewsets.ReadOnlyModelViewSet):

@@ -191,6 +191,9 @@ POST /api/products/check_warranty/
 {
   "qrcode_id": "QR001"
 }
+
+# 二维码查询
+GET /api/products/get_by_qrcode/?qrcode_id=112sdf
 ```
 
 ## 权限控制
