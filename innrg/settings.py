@@ -9,12 +9,20 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env()
+env_file = os.path.join(BASE_DIR, '.env')
+if os.path.isfile(env_file):
+    environ.Env.read_env(env_file)
+    print("成功加载.env文件")
+else:
+    print(f"错误：未找到.env文件在 {env_file}")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -23,27 +31,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-l)s05!$*oo7cg^8)3oidp%&m)157z32!8r(a(utf$vlwsogb1@'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG', default=False)
 
 ALLOWED_HOSTS = ["*"]
-CORS_ALLOW_CREDENTIALS = True
-# CORS settings
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',  # Vite 默认开发服务器地址
-    'http://127.0.0.1',
-    'http://127.0.0.1:5173',
-    'http://localhost:5173',
-    'http://47.120.43.183',
-    'http://qr.yayaxueqin.cn',
-    'http://qr.notebay.cn',
-    'https://qr.yayaxueqin.cn',
-    'https://qr.notebay.cn',
-    'https://*.yayaxueqin.cn',
-    'https://*.notebay.cn'
-]
+if DEBUG:
+    CORS_ORIGIN_ALLOW_ALL = True
 
-# SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    CORS_ALLOW_CREDENTIALS = True
+    # CORS settings
+    CORS_ALLOWED_ORIGINS = [
+        'http://qr.yayaxueqin.cn',
+        'http://qr.notebay.cn',
+        'https://qr.yayaxueqin.cn',
+        'https://qr.notebay.cn',
+        'https://*.yayaxueqin.cn',
+        'https://*.notebay.cn'
+    ]
+
+    SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
@@ -94,13 +101,29 @@ WSGI_APPLICATION = 'innrg.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+    STATIC_ROOT = BASE_DIR / 'static'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('POSTGRES_DB'),
+            'USER': env('POSTGRES_USER'),
+            'PASSWORD': env('POSTGRES_PASSWORD'),
+            'HOST': env('POSTGRES_HOST'),  # 使用 docker-compose 中定义的服务名
+            'PORT': env('POSTGRES_PORT', default=5432)
+        }
+    }
+    STATIC_ROOT = '/app/static'
+    MEDIA_URL = '/media/'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
