@@ -107,7 +107,7 @@
 
 - Python 3.8+
 - PostgreSQL
-- pip (Python包管理器)
+- uv (Python包管理器)
 
 ### 安装步骤
 
@@ -126,30 +126,529 @@
    source venv/bin/activate
    ```
 
-3. 安装依赖
+3. 安装uv包管理器
    ```bash
-   pip install -r requirements.txt
+   pip install uv
    ```
 
-4. 配置数据库
+4. 使用uv安装依赖
+   ```bash
+   uv pip install -r requirements.txt
+   # 或者使用pyproject.toml
+   uv pip install -e .
+   ```
+
+5. 配置数据库
    ```bash
    # 在settings.py中配置数据库连接
    ```
 
-5. 执行数据库迁移
+6. 执行数据库迁移
    ```bash
    python manage.py makemigrations
    python manage.py migrate
    ```
 
-6. 创建超级用户
+7. 创建超级用户
    ```bash
    python manage.py createsuperuser
    ```
 
-7. 运行开发服务器
+8. 运行开发服务器
    ```bash
    python manage.py runserver
+   ```
+
+## 部署指南
+
+### 使用Gunicorn部署
+
+1. 安装Gunicorn和Gevent
+   ```bash
+   uv pip install gunicorn gevent
+   ```
+
+2. 收集静态文件
+   ```bash
+   python manage.py collectstatic
+   ```
+
+3. 确保日志目录存在
+   ```bash
+   sudo mkdir -p /var/log/gunicorn
+   sudo chown -R <your-user>:<your-group> /var/log/gunicorn
+   ```
+
+4. 测试Gunicorn配置
+   ```bash
+   gunicorn --config=gunicorn.conf.py innrg.wsgi:application
+   ```
+
+4. 调整Gunicorn配置
+
+   根据您的服务器环境，您可能需要调整gunicorn.conf.py中的配置：
+   
+   ```python
+   # 调整工作进程数（通常设置为CPU核心数的2-4倍）
+   workers = 4  # 根据您的CPU核心数调整
+   
+   # 调整日志路径
+   accesslog = '/path/to/your/logs/access.log'
+   errorlog = '/path/to/your/logs/error.log'
+   
+   # 在生产环境中可能需要启用守护进程模式
+   daemon = True
+   ```
+
+5. 生产环境部署
+   
+   创建systemd服务文件（Linux系统）:
+   ```bash
+   sudo nano /etc/systemd/system/innrg.service
+   ```
+   
+   添加以下内容:
+   ```
+   [Unit]
+   Description=Innrg Gunicorn Service
+   After=network.target
+
+   [Service]
+   User=<your-user>
+   Group=<your-group>
+   WorkingDirectory=/path/to/innrg
+   ExecStart=/path/to/venv/bin/gunicorn --config=gunicorn.conf.py innrg.wsgi:application
+   
+   # 添加环境变量
+   Environment="DJANGO_SETTINGS_MODULE=innrg.settings"
+   Environment="DJANGO_SECRET_KEY=your-secret-key"
+   Environment="DJANGO_DEBUG=False"
+   Environment="DATABASE_URL=postgres://user:password@localhost:5432/innrg"
+   
+   Restart=on-failure
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+5. 启动服务
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl start innrg
+   sudo systemctl enable innrg
+   ```
+
+6. 检查服务状态
+   ```bash
+   sudo systemctl status innrg
+   ```
+
+### 使用Nginx作为反向代理
+
+1. 安装Nginx
+   ```bash
+   sudo apt update
+   sudo apt install nginx
+   ```
+
+2. 创建Nginx配置文件
+   ```bash
+   sudo nano /etc/nginx/sites-available/innrg
+   ```
+   
+   添加以下内容:
+   ```
+   server {
+       listen 80;
+       server_name your-domain.com;
+
+       location /static/ {
+           alias /path/to/innrg/static/;
+       }
+
+       location /media/ {
+           alias /path/to/innrg/media/;
+       }
+
+       location / {
+           proxy_pass http://127.0.0.1:8000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+
+3. 启用站点配置
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/innrg /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+4. 配置SSL（可选，推荐）
+   ```bash
+   sudo apt install certbot python3-certbot-nginx
+   sudo certbot --nginx -d your-domain.com
+   ```
+
+### 生产环境安全性配置
+
+1. 禁用DEBUG模式
+   
+   在生产环境中，应该禁用Django的DEBUG模式。可以通过环境变量或直接在settings.py中设置：
+   
+   ```python
+   # settings.py
+   DEBUG = False
+   ```
+
+2. 设置安全的SECRET_KEY
+   
+   不要在代码中硬编码SECRET_KEY，应该通过环境变量设置：
+   
+   ```python
+   # settings.py
+   import os
+   SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+   ```
+
+3. 配置允许的主机
+   
+   限制可以访问您应用的主机名：
+   
+   ```python
+   # settings.py
+   ALLOWED_HOSTS = ['your-domain.com', 'www.your-domain.com']
+   ```
+
+4. 设置适当的文件权限
+   
+   ```bash
+   # 设置代码目录权限
+   sudo chown -R <your-user>:<your-group> /path/to/innrg
+   sudo chmod -R 755 /path/to/innrg
+   
+   # 设置敏感文件权限
+   sudo chmod 600 /path/to/innrg/.env
+   ```
+
+### 监控和维护
+
+1. 查看日志
+   
+   ```bash
+   # 查看Gunicorn访问日志
+   sudo tail -f /var/log/gunicorn/access.log
+   
+   # 查看Gunicorn错误日志
+   sudo tail -f /var/log/gunicorn/error.log
+   
+   # 查看Nginx访问日志
+   sudo tail -f /var/log/nginx/access.log
+   
+   # 查看Nginx错误日志
+   sudo tail -f /var/log/nginx/error.log
+   ```
+
+2. 重启服务
+   
+   ```bash
+   # 重启Gunicorn服务
+   sudo systemctl restart innrg
+   
+   # 重启Nginx
+   sudo systemctl restart nginx
+   ```
+
+3. 数据库备份
+   
+   ```bash
+   # 备份PostgreSQL数据库
+   pg_dump -U postgres innrg > innrg_backup_$(date +%Y%m%d).sql
+   
+   # 恢复数据库
+   psql -U postgres innrg < innrg_backup.sql
+   ```
+
+### 使用Docker部署（可选）
+
+1. 创建Dockerfile
+   ```bash
+   nano Dockerfile
+   ```
+   
+   添加以下内容:
+   ```dockerfile
+   FROM python:3.10-slim
+
+   WORKDIR /app
+
+   RUN pip install uv
+
+   COPY requirements.txt .
+   RUN uv pip install -r requirements.txt
+   RUN uv pip install gunicorn gevent
+
+   COPY . .
+
+   RUN mkdir -p /var/log/gunicorn
+   RUN python manage.py collectstatic --noinput
+
+   EXPOSE 8000
+
+   CMD ["gunicorn", "--config=gunicorn.conf.py", "innrg.wsgi:application"]
+   ```
+
+2. 创建docker-compose.yml
+   ```bash
+   nano docker-compose.yml
+   ```
+   
+   添加以下内容:
+   ```yaml
+   version: '3'
+
+   services:
+     db:
+       image: postgres:14
+       volumes:
+         - postgres_data:/var/lib/postgresql/data/
+       env_file:
+         - ./.env
+       environment:
+         - POSTGRES_PASSWORD=postgres
+         - POSTGRES_USER=postgres
+         - POSTGRES_DB=innrg
+
+     web:
+       build: .
+       restart: always
+       depends_on:
+         - db
+       env_file:
+         - ./.env
+       volumes:
+         - ./:/app
+         - static_volume:/app/static
+         - media_volume:/app/media
+       ports:
+         - "8000:8000"
+
+     nginx:
+       image: nginx:1.21
+       ports:
+         - "80:80"
+       volumes:
+         - ./nginx/conf.d:/etc/nginx/conf.d
+         - static_volume:/home/app/static
+         - media_volume:/home/app/media
+       depends_on:
+         - web
+
+   volumes:
+     postgres_data:
+     static_volume:
+     media_volume:
+   ```
+
+3. 启动Docker容器
+   ```bash
+   docker-compose up -d
+   ```
+
+### 性能优化建议
+
+1. 配置缓存
+   
+   在settings.py中配置缓存系统：
+   
+   ```python
+   # 使用Redis作为缓存后端
+   CACHES = {
+       'default': {
+           'BACKEND': 'django_redis.cache.RedisCache',
+           'LOCATION': 'redis://127.0.0.1:6379/1',
+           'OPTIONS': {
+               'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+           }
+       }
+   }
+   ```
+   
+   安装必要的包：
+   ```bash
+   uv pip install django-redis redis
+   ```
+
+2. 数据库优化
+   
+   - 为频繁查询的字段添加索引
+   - 使用select_related()和prefetch_related()减少数据库查询
+   - 考虑使用数据库连接池：
+     ```bash
+     uv pip install django-db-connection-pool
+     ```
+
+3. 静态文件优化
+   
+   使用CDN或配置静态文件缓存：
+   ```python
+   # settings.py
+   STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+   ```
+
+### 自动化部署
+
+1. 使用GitHub Actions自动部署
+
+   创建.github/workflows/deploy.yml文件：
+   ```yaml
+   name: Deploy
+
+   on:
+     push:
+       branches: [ main ]
+
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       steps:
+       - uses: actions/checkout@v2
+       
+       - name: Set up Python
+         uses: actions/setup-python@v2
+         with:
+           python-version: '3.10'
+       
+       - name: Install dependencies
+         run: |
+           python -m pip install --upgrade pip
+           pip install uv
+           uv pip install -r requirements.txt
+       
+       - name: Run tests
+         run: |
+           python manage.py test
+       
+       - name: Deploy to server
+         uses: appleboy/ssh-action@master
+         with:
+           host: ${{ secrets.HOST }}
+           username: ${{ secrets.USERNAME }}
+           key: ${{ secrets.SSH_PRIVATE_KEY }}
+           script: |
+             cd /path/to/innrg
+             git pull
+             source venv/bin/activate
+             uv pip install -r requirements.txt
+             python manage.py migrate
+             python manage.py collectstatic --noinput
+             sudo systemctl restart innrg
+   ```
+
+2. 使用Fabric进行部署自动化
+   
+   安装Fabric：
+   ```bash
+   uv pip install fabric
+   ```
+   
+   创建fabfile.py：
+   ```python
+   from fabric import task
+
+   @task
+   def deploy(c):
+       # 拉取最新代码
+       c.run('cd /path/to/innrg && git pull')
+       
+       # 更新依赖
+       c.run('cd /path/to/innrg && source venv/bin/activate && uv pip install -r requirements.txt')
+       
+       # 执行数据库迁移
+       c.run('cd /path/to/innrg && source venv/bin/activate && python manage.py migrate')
+       
+       # 收集静态文件
+       c.run('cd /path/to/innrg && source venv/bin/activate && python manage.py collectstatic --noinput')
+       
+       # 重启服务
+       c.run('sudo systemctl restart innrg')
+   ```
+   
+   使用Fabric部署：
+   ```bash
+   fab -H user@server deploy
+   ```
+
+### 故障排除
+
+1. Gunicorn无法启动
+   
+   检查日志文件：
+   ```bash
+   sudo tail -f /var/log/gunicorn/error.log
+   ```
+   
+   常见问题：
+   - 路径错误：确保gunicorn.conf.py中的路径正确
+   - 权限问题：确保用户有权限访问所有必要的文件和目录
+   - 依赖问题：确保所有必要的包都已安装
+
+2. 静态文件未正确加载
+   
+   检查Nginx配置：
+   ```bash
+   sudo nginx -t
+   ```
+   
+   确保静态文件已收集：
+   ```bash
+   python manage.py collectstatic --noinput
+   ```
+   
+   检查静态文件目录权限：
+   ```bash
+   sudo chown -R www-data:www-data /path/to/static
+   ```
+
+3. 数据库连接问题
+   
+   检查数据库服务是否运行：
+   ```bash
+   sudo systemctl status postgresql
+   ```
+   
+   检查数据库连接设置：
+   ```bash
+   # 确保settings.py中的数据库配置正确
+   # 或者环境变量中的DATABASE_URL正确
+   ```
+
+4. 500服务器错误
+   
+   检查Django错误日志：
+   ```bash
+   sudo tail -f /var/log/gunicorn/error.log
+   ```
+   
+   临时启用DEBUG模式进行调试（记得之后禁用）：
+   ```python
+   # settings.py
+   DEBUG = True
+   ```
+
+5. 502 Bad Gateway错误
+   
+   检查Gunicorn是否正在运行：
+   ```bash
+   ps aux | grep gunicorn
+   ```
+   
+   检查Nginx和Gunicorn之间的通信：
+   ```bash
+   # 确保Nginx配置中的proxy_pass指向正确的Gunicorn地址和端口
    ```
 
 ## 使用示例
