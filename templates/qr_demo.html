@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码识别器</title>
+    <script src="https://qiniu.yayaxueqin.cn/js/jsQR.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a6bdf;
+            --secondary-color: #f5f7fa;
+            --text-color: #333;
+            --light-text: #666;
+            --border-color: #e0e0e0;
+            --success-color: #28a745;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            margin: auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 24px;
+            color: var(--primary-color);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+        }
+
+        .upload-area.active {
+            border-color: var(--primary-color);
+            background-color: rgba(74, 107, 223, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: var(--light-text);
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: var(--light-text);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+            margin-bottom: 16px;
+        }
+
+        .button:hover {
+            background-color: #3a5bd9;
+        }
+
+        .button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result-container {
+            display: none;
+            margin-top: 24px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+        }
+
+        .result-content {
+            background-color: var(--secondary-color);
+            padding: 16px;
+            border-radius: 6px;
+            word-break: break-all;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .preview-container {
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .status {
+            text-align: center;
+            margin: 12px 0;
+            font-size: 14px;
+            color: var(--light-text);
+            min-height: 20px;
+        }
+
+        .success {
+            color: var(--success-color);
+        }
+
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>二维码识别器</h1>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">点击或拖放二维码图片</div>
+            <div class="upload-hint">支持PNG, JPG, JPEG格式</div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <button class="button" id="scanButton" disabled>识别二维码</button>
+
+        <div class="preview-container">
+            <img id="imagePreview" alt="预览图">
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-title">识别结果</div>
+            <div class="result-content" id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const scanButton = document.getElementById('scanButton');
+            const imagePreview = document.getElementById('imagePreview');
+            const statusElement = document.getElementById('status');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultContent = document.getElementById('resultContent');
+
+            let uploadedImage = null;
+
+            // 点击上传区域触发文件选择
+            uploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            // 拖放功能
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('active');
+            });
+
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('active');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('active');
+
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelection(e.dataTransfer.files[0]);
+                }
+            });
+
+            // 文件选择处理
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length) {
+                    handleFileSelection(fileInput.files[0]);
+                }
+            });
+
+            // 扫描按钮点击事件
+            scanButton.addEventListener('click', function() {
+                if (!uploadedImage) return;
+
+                scanButton.disabled = true;
+                statusElement.textContent = '正在识别...';
+                statusElement.className = 'status';
+
+                setTimeout(() => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = uploadedImage.width;
+                        canvas.height = uploadedImage.height;
+                        ctx.drawImage(uploadedImage, 0, 0, canvas.width, canvas.height);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                            inversionAttempts: 'dontInvert',
+                        });
+
+                        if (code) {
+                            resultContent.textContent = code.data;
+                            resultContainer.style.display = 'block';
+                            statusElement.textContent = '识别成功！';
+                            statusElement.className = 'status success';
+                        } else {
+                            resultContainer.style.display = 'none';
+                            statusElement.textContent = '未识别到二维码，请尝试其他图片';
+                            statusElement.className = 'status error';
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        statusElement.textContent = '识别过程中出错，请重试';
+                        statusElement.className = 'status error';
+                    } finally {
+                        scanButton.disabled = false;
+                    }
+                }, 100);
+            });
+
+            // 处理选择的文件
+            function handleFileSelection(file) {
+                if (!file.type.match('image.*')) {
+                    statusElement.textContent = '请选择图片文件';
+                    statusElement.className = 'status error';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        uploadedImage = img;
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                        scanButton.disabled = false;
+                        resultContainer.style.display = 'none';
+                        statusElement.textContent = '图片已加载，点击识别按钮开始识别';
+                        statusElement.className = 'status';
+                    };
+                    img.onerror = function() {
+                        statusElement.textContent = '图片加载失败，请重试';
+                        statusElement.className = 'status error';
+                        scanButton.disabled = true;
+                    };
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() {
+                    statusElement.textContent = '文件读取失败，请重试';
+                    statusElement.className = 'status error';
+                    scanButton.disabled = true;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>

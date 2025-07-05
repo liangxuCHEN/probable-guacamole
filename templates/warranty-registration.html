@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Warranty Registration</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://qiniu.yayaxueqin.cn/js/jsQR.min.js"></script>
 
     <!-- Tailwind CSS Configuration -->
     <script>
@@ -126,12 +127,12 @@
                     <img id="preview-image" src="" alt="Uploaded QR code" class="max-w-full h-auto rounded-lg shadow-md mx-auto">
                 </div>
                 <div class="flex justify-center space-x-4">
-                    <button id="retake-btn" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-medium py-2 px-6 rounded-full transition-custom">
-                        <i class="fa fa-refresh mr-1"></i>
+                    <button id="retake-btn" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-medium py-2 px-6 rounded-full flex transition-custom">
+                        <img src="https://qiniu.yayaxueqin.cn/icon/redo-alt-solid.svg" alt="redo-alt icon" class="w-4 h-4 mr-1">
                         <span id="retake-btn-text">Retake</span>
                     </button>
                     <button id="confirm-btn" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full shadow-md transition-custom hover:shadow-lg">
-                        <i class="fa fa-check mr-1"></i>
+                        <img src="https://qiniu.yayaxueqin.cn/icon/check-circle.svg" alt="camera icon" class="w-5 h-5">
                         <span id="confirm-btn-text">Confirm</span>
                     </button>
                 </div>
@@ -343,7 +344,10 @@
                 resultDaysRemaining: "days remaining",
                 restartBtnText: "Scan Another QR Code",
                 toastMessage: "Registration submitted successfully!",
-                footerText: "© 2023 Premium Vehicle Batteries Warranty System. All rights reserved."
+                footerText: "© 2023 Premium Vehicle Batteries Warranty System. All rights reserved.",
+                qrCodeNotDetected: "No QR code detected. Please try another image.",
+                processingError: "Error processing image. Please try again.",
+                imageLoadError: "Failed to load image. Please try again."
             },
             zh: {
                 title: "产品保修注册",
@@ -379,7 +383,10 @@
                 resultDaysRemaining: "天剩余",
                 restartBtnText: "扫描另一个二维码",
                 toastMessage: "注册提交成功！",
-                footerText: "© 2023 高级汽车电池保修系统。保留所有权利。"
+                footerText: "© 2023 高级汽车电池保修系统。保留所有权利。",
+                qrCodeNotDetected: "未识别到二维码，请尝试其他图片。",
+                processingError: "图像处理出错，请重试。",
+                imageLoadError: "图像加载失败，请重试。"
             }
         };
 
@@ -496,48 +503,89 @@
             uploadPreview.classList.add('hidden');
             processingAnimation.classList.remove('hidden');
             
-            // 创建FormData对象，用于上传图片
-            const formData = new FormData();
-            formData.append('image', qrCodeUpload.files[0]);
-            
-            // 发送请求到后端API
-            fetch('/api/wr', {
-                method: 'POST',
-                credentials: 'include',  // 包含凭证
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                processingAnimation.classList.add('hidden');
-                
-                if (data.status === 'success') {
-                    if (data.data.is_activated) {
-                        // 产品已激活，显示产品信息
-                        showActivatedResultWithData(data.data.product);
+            // 创建一个Image对象来加载预览图像
+            const img = new Image();
+            img.onload = function() {
+                try {
+                    // 创建canvas用于处理图像
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 获取图像数据
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    // 使用jsQR库识别二维码
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: 'dontInvert',
+                    });
+                    
+                    if (code) {
+                        // 成功识别到二维码
+                        const qrcodeId = code.data;
+                        
+                        // 发送请求到后端API，只传递识别到的qrcode_id
+                        fetch('/api/wr', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ qrcode_id: qrcodeId })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            processingAnimation.classList.add('hidden');
+                            
+                            if (data.status === 'success') {
+                                if (data.data.is_activated) {
+                                    // 产品已激活，显示产品信息
+                                    showActivatedResultWithData(data.data.product);
+                                } else {
+                                    // 产品未激活，显示激活表单
+                                    showNotActivatedResultWithData(data.data.product);
+                                }
+                            } else {
+                                // 显示错误信息
+                                showErrorToast(data.message || '处理失败，请重试');
+                                // 重新显示上传预览区域，允许用户重试
+                                uploadPreview.classList.remove('hidden');
+                            }
+                        })
+                        .catch(error => {
+                            // 隐藏处理动画
+                            processingAnimation.classList.add('hidden');
+                            // 显示错误提示
+                            showErrorToast('网络错误，请重试');
+                            console.error('Error:', error);
+                            // 重新显示上传预览区域
+                            uploadPreview.classList.remove('hidden');
+                        });
                     } else {
-                        // 产品未激活，显示激活表单
-                        showNotActivatedResultWithData(data.data.product);
+                        // 未识别到二维码
+                        processingAnimation.classList.add('hidden');
+                        showErrorToast(translations[currentLang].qrCodeNotDetected || '未识别到二维码，请重试');
+                        uploadPreview.classList.remove('hidden');
                     }
-                } else {
-                    // 显示错误信息
-                    showErrorToast(data.message || '处理失败，请重试');
-                    // 重新显示上传预览区域，允许用户重试
+                } catch (error) {
+                    // 处理过程中出错
+                    processingAnimation.classList.add('hidden');
+                    showErrorToast(translations[currentLang].processingError || '图像处理出错，请重试');
+                    console.error('Error processing image:', error);
                     uploadPreview.classList.remove('hidden');
-                    // 允许重新选择文件
-                    qrCodeUpload.value = '';
                 }
-            })
-            .catch(error => {
-                // 隐藏处理动画
+            };
+            
+            img.onerror = function() {
                 processingAnimation.classList.add('hidden');
-                // 显示错误提示
-                showErrorToast('网络错误，请重试');
-                console.error('Error:', error);
-                // 重新显示上传预览区域
+                showErrorToast(translations[currentLang].imageLoadError || '图像加载失败，请重试');
                 uploadPreview.classList.remove('hidden');
-                // 允许重新选择文件
-                qrCodeUpload.value = '';
-            });
+            };
+            
+            // 设置图像源为预览图像的src
+            img.src = previewImage.src;
         });
 
         // Show Not Activated Result with API Data

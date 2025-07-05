@@ -42,8 +42,8 @@ CORS_ALLOWED_ORIGINS = [
     'https://*.notebay.cn'
 ]
 
-SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 

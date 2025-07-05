@@ -3,13 +3,14 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.decorators import api_view, permission_classes, action, authentication_classes
 from django.contrib.auth import authenticate
 from rest_framework import status, viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404, render
+from django.http import JsonResponse
 
 from .models import (
     User, ProductType, Product, OperationRecord, RepairRecord
@@ -22,15 +23,6 @@ from .serializers import (
 )
 
 
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework import status
-from .serializers import ProductActivationSerializer
-from .models import Product, OperationRecord
-
 @csrf_exempt
 @api_view(['GET', 'POST'])
 @authentication_classes([])  # 禁用JWT认证
@@ -41,105 +33,51 @@ def warranty_registration(request):
         return render(request, 'warranty-registration.html')
     
     elif request.method == 'POST':
+        # 查询产品信息
         try:
-            # 处理图片上传和二维码识别
-            if 'image' not in request.FILES:
+            product = Product.objects.get(qrcode_id=request.data.get("qrcode_id"))
+            # 检查产品状态
+            if product.status == 3:  # 已激活
+                return JsonResponse({
+                    'status': 'success',
+                    'message': '产品已激活',
+                    'data': {
+                        'is_activated': True,
+                        'product': {
+                            'qrcode_id': product.qrcode_id,
+                            'name': product.name,
+                            'email': product.email,
+                            'activation_date': product.activation_date.strftime('%Y-%m-%d %H:%M:%S') if product.activation_date else None,
+                            'warranty_start': product.warranty_start_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
+                            'warranty_end': product.warranty_end_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
+                            'under_warranty': product.is_under_warranty(),
+                            'status': product.get_status_display()
+                        }
+                    }
+                })
+            elif product.status == 2:  # 已出货，可以激活
+                return JsonResponse({
+                    'status': 'success',
+                    'message': '产品未激活',
+                    'data': {
+                        'is_activated': False,
+                        'product': {
+                            'qrcode_id': product.qrcode_id,
+                            'product_type': product.product_type.name if product.product_type else None
+                        }
+                    }
+                })
+            else:
                 return JsonResponse({
                     'status': 'error',
-                    'message': '请上传图片'
+                    'message': '产品状态异常，无法激活'
                 }, status=400)
 
-            image = request.FILES['image']
-
-            # 使用OpenCV和pyzbar进行二维码识别
-            import cv2
-            import numpy as np
-            import os
-            import tempfile
-            from pyzbar.pyzbar import decode
-            
-            # 先保存图片到临时文件
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-                for chunk in image.chunks():
-                    temp_file.write(chunk)
-                temp_file_path = temp_file.name
-            
-            try:
-                # 读取保存的图片
-                image_array = cv2.imread(temp_file_path)
-                if image_array is None:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': '图片读取失败，请重新上传'
-                    }, status=400)
-                
-                decoded_objects = decode(image_array)
-            finally:
-                # 删除临时文件
-                if os.path.exists(temp_file_path):
-                    os.unlink(temp_file_path)
-
-            if not decoded_objects:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': '未能识别二维码，请确保图片清晰'
-                }, status=400)
-
-            # 获取二维码内容（产品ID）
-            qrcode_id = decoded_objects[0].data.decode('utf-8')
-
-            # 查询产品信息
-            try:
-                product = Product.objects.get(qrcode_id=qrcode_id)
-                # 检查产品状态
-                if product.status == 3:  # 已激活
-                    return JsonResponse({
-                        'status': 'success',
-                        'message': '产品已激活',
-                        'data': {
-                            'is_activated': True,
-                            'product': {
-                                'qrcode_id': product.qrcode_id,
-                                'name': product.name,
-                                'email': product.email,
-                                'activation_date': product.activation_date.strftime('%Y-%m-%d %H:%M:%S') if product.activation_date else None,
-                                'warranty_start': product.warranty_start_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
-                                'warranty_end': product.warranty_end_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
-                                'under_warranty': product.is_under_warranty(),
-                                'status': product.get_status_display()
-                            }
-                        }
-                    })
-                elif product.status == 2:  # 已出货，可以激活
-                    return JsonResponse({
-                        'status': 'success',
-                        'message': '产品未激活',
-                        'data': {
-                            'is_activated': False,
-                            'product': {
-                                'qrcode_id': product.qrcode_id,
-                                'product_type': product.product_type.name if product.product_type else None
-                            }
-                        }
-                    })
-                else:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': '产品状态异常，无法激活'
-                    }, status=400)
-
-            except Product.DoesNotExist:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': '未找到该产品'
-                }, status=404)
-                
-        except Exception as e:
+        except Product.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
-                'message': f'处理失败：{str(e)}'
-            }, status=500)
-
+                'message': '未找到该产品'
+            }, status=404)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -203,7 +141,6 @@ def activate_product(request):
 @permission_classes([AllowAny])
 def login_view(request):
     """用户登录接口"""
-    print(request.data)
     serializer = UserLoginSerializer(data=request.data)
     if serializer.is_valid():
         username = serializer.validated_data['username']
