@@ -5,7 +5,9 @@ django-cors-headers==4.7.0
 django-filter==25.1
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
-greenlet==3.2.3
+gevent==23.9.1
+greenlet==3.1.1
+gunicorn==23.0.0
 psycopg2-binary==2.9.10
 pydantic==2.11.7
 pydantic_core==2.33.2

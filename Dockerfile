@@ -31,7 +31,7 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=musicWeb.settings \
+    DJANGO_SETTINGS_MODULE=innrg.settings \
     TZ=Asia/Shanghai
 
 # 使用阿里云镜像源

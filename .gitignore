@@ -132,3 +132,4 @@ conf/platform/ieod.py
 
 # If you are using PyCharm
 .idea/
+static/
