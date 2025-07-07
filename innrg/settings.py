@@ -148,7 +148,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 # 改为中文
 LANGUAGE_CODE = 'zh-hans'
-TIME_ZONE = 'UTC'
+# 设置时区为上海时区
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 

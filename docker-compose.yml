@@ -49,7 +49,7 @@ services:
   db:
     image: hub.bds100.com/postgres:15
     volumes:
-      - /root/docker_data/pg_data:/var/lib/postgresql/data
+      - /root/docker_data/innrg_pg_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=innrg
       - POSTGRES_USER=clx

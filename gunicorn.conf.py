@@ -27,7 +27,7 @@ daemon = False
 timeout = 30
 
 # 设置最大请求数
-max_requests = 100
+max_requests = 500
 
 # 设置最大请求抖动值
 max_requests_jitter = 50
@@ -35,8 +35,8 @@ max_requests_jitter = 50
 # 设置进程名称
 proc_name = 'innrg_gunicorn'
 # 设置worker进程的最大内存
-limit_request_line = 512
+limit_request_line = 1024
 # 请求头的最大数量
-limit_request_fields = 20
+limit_request_fields = 50
 # 单个请求头的最大大小
 limit_request_field_size = 4095
