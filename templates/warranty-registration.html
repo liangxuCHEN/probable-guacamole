@@ -672,7 +672,11 @@
                 } else {
                     // 图片尺寸小于阈值，直接处理
                     processingAnimation.classList.remove('hidden');
-                    processImage(img);
+                    let result = processImage(img);
+                    // 如果处理失败，进行裁剪
+                    if (!result) {
+                        showCropper(img);
+                    }
                 }
             }
 
@@ -681,24 +685,24 @@
                 showErrorToast(translations[currentLang].imageLoadError || '图像加载失败，请重试');
                 uploadPreview.classList.remove('hidden');
             };
-            
+
             // 设置图像源为预览图像的src
             img.src = previewImage.src;
         });
-        
+
         // 显示裁剪界面
         function showCropper(img) {
             // 显示裁剪区域
             cropperSection.classList.remove('hidden');
-            
+
             // 设置裁剪图像源
             cropperImage.src = img.src;
-            
+
             // 如果已经存在cropper实例，先销毁
             if (cropper) {
                 cropper.destroy();
             }
-            
+
             // 初始化Cropper.js
             cropper = new Cropper(cropperImage, {
                 aspectRatio: NaN, // 自由比例
@@ -713,86 +717,86 @@
                 minContainerHeight: 300
             });
         }
-        
+
         // 取消裁剪按钮
         cancelCropBtn.addEventListener('click', function() {
             // 隐藏裁剪区域
             cropperSection.classList.add('hidden');
-            
+
             // 销毁Cropper实例
             if (cropper) {
                 cropper.destroy();
                 cropper = null;
             }
-            
+
             // 显示上传预览
             uploadPreview.classList.remove('hidden');
         });
-        
+
         // 裁剪并扫描按钮
         cropBtn.addEventListener('click', function() {
             if (!cropper) return;
-            
+
             // 隐藏裁剪区域
             cropperSection.classList.add('hidden');
-            
+
             // 显示处理动画
             processingAnimation.classList.remove('hidden');
-            
+
             // 获取裁剪后的图像数据
             const canvas = cropper.getCroppedCanvas({
                 maxWidth: 1000,
                 maxHeight: 1000,
                 fillColor: '#fff'
             });
-            
+
             if (!canvas) {
                 processingAnimation.classList.add('hidden');
                 showErrorToast(translations[currentLang].processingError || '图像处理出错，请重试');
                 uploadPreview.classList.remove('hidden');
                 return;
             }
-            
+
             // 创建一个新的Image对象来加载裁剪后的图像
             const croppedImg = new Image();
             croppedImg.onload = function() {
                 // 处理裁剪后的图像
                 processImage(croppedImg);
-                
+
                 // 销毁Cropper实例
                 cropper.destroy();
                 cropper = null;
             };
-            
+
             croppedImg.onerror = function() {
                 processingAnimation.classList.add('hidden');
                 showErrorToast(translations[currentLang].processingError || '图像处理出错，请重试');
                 uploadPreview.classList.remove('hidden');
-                
+
                 // 销毁Cropper实例
                 if (cropper) {
                     cropper.destroy();
                     cropper = null;
                 }
             };
-            
+
             // 设置裁剪后图像的源
             croppedImg.src = canvas.toDataURL('image/jpeg');
         });
-        
+
         // 处理图像并识别二维码
         function processImage(img) {
             try {
                 // 创建canvas用于处理图像
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                
+
                 // 检查图像尺寸，如果大于400像素则缩小
                 let width = img.width;
                 let height = img.height;
                 const RESIZE_THRESHOLD = 400; // 需要压缩的图片尺寸阈值
                 const MAX_SIZE = 300; // 压缩后的最大尺寸
-                
+
                 if (width > RESIZE_THRESHOLD || height > RESIZE_THRESHOLD) {
                     // 计算缩放比例，保持宽高比
                     const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
@@ -806,17 +810,17 @@
                     height = Math.floor(height * ratio);
                     console.log(`Image resized from ${img.width}x${img.height} to ${width}x${height}`);
                 }
-                
+
                 // 设置canvas尺寸为调整后的尺寸
                 canvas.width = width;
                 canvas.height = height;
-                
+
                 // 绘制调整大小后的图像
                 ctx.drawImage(img, 0, 0, width, height);
-                
+
                 // 获取图像数据
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
+
                 // 使用jsQR库识别二维码
                 const code = jsQR(imageData.data, imageData.width, imageData.height, {
                     inversionAttempts: 'dontInvert',
@@ -825,7 +829,7 @@
                 if (code) {
                     // 成功识别到二维码
                     const qrcodeId = code.data;
-                    
+
                     // 发送请求到后端API，只传递识别到的qrcode_id
                     fetch('/api/wr', {
                         method: 'POST',
@@ -838,7 +842,7 @@
                     .then(response => response.json())
                     .then(data => {
                         processingAnimation.classList.add('hidden');
-                        
+
                         if (data.status === 'success') {
                             if (data.data.is_activated) {
                                 // 产品已激活，显示产品信息
@@ -862,12 +866,16 @@
                         console.error('Error:', error);
                         // 重新显示上传预览区域
                         uploadPreview.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        return true;
                     });
                 } else {
                     // 未识别到二维码
                     processingAnimation.classList.add('hidden');
                     showErrorToast(translations[currentLang].qrCodeNotDetected || '未识别到二维码，请重试');
                     uploadPreview.classList.remove('hidden');
+                    return false;
                 }
             } catch (error) {
                 // 处理过程中出错
@@ -875,6 +883,7 @@
                 showErrorToast(translations[currentLang].processingError || '图像处理出错，请重试');
                 console.error('Error processing image:', error);
                 uploadPreview.classList.remove('hidden');
+                return false;
             }
         }
 
