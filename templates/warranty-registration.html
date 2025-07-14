@@ -514,9 +514,26 @@
                     // 创建canvas用于处理图像
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // 检查图像尺寸，如果大于400像素则缩小
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_SIZE = 300;
+                    
+                    if (width > MAX_SIZE || height > MAX_SIZE) {
+                        // 计算缩放比例，保持宽高比
+                        const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+                        width = Math.floor(width * ratio);
+                        height = Math.floor(height * ratio);
+                        console.log(`Image resized from ${img.width}x${img.height} to ${width}x${height}`);
+                    }
+                    
+                    // 设置canvas尺寸为调整后的尺寸
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // 绘制调整大小后的图像
+                    ctx.drawImage(img, 0, 0, width, height);
                     
                     // 获取图像数据
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -525,7 +542,7 @@
                     const code = jsQR(imageData.data, imageData.width, imageData.height, {
                         inversionAttempts: 'dontInvert',
                     });
-                    
+                    console.log(code)
                     if (code) {
                         // 成功识别到二维码
                         const qrcodeId = code.data;
