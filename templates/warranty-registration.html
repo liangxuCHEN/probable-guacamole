@@ -432,8 +432,21 @@
             }
         };
 
-        // Current language
-        let currentLang = 'en';
+        // Detect browser language and set initial language
+        function detectBrowserLanguage() {
+            // Get browser language (returns language code like 'en-US', 'zh-CN', etc.)
+            const browserLang = navigator.language || navigator.userLanguage;
+            
+            // Check if browser language contains 'zh' (Chinese)
+            if (browserLang && browserLang.toLowerCase().includes('zh')) {
+                return 'zh';
+            } else {
+                return 'en';
+            }
+        }
+        
+        // Current language - initialize based on browser language
+        let currentLang = detectBrowserLanguage();
 
         //let API_HOST = 'http://192.168.20.172'
 
@@ -1069,8 +1082,21 @@
         }
 
 
-        // Initialize language
+        // Initialize language and button styles based on detected language
         updateLanguage();
+        
+        // Set initial button styles based on detected language
+        if (currentLang === 'zh') {
+            langZhBtn.classList.add('bg-primary/10', 'text-primary');
+            langZhBtn.classList.remove('text-neutral-500');
+            langEnBtn.classList.add('text-neutral-500');
+            langEnBtn.classList.remove('bg-primary/10', 'text-primary');
+        } else {
+            langEnBtn.classList.add('bg-primary/10', 'text-primary');
+            langEnBtn.classList.remove('text-neutral-500');
+            langZhBtn.classList.add('text-neutral-500');
+            langZhBtn.classList.remove('bg-primary/10', 'text-primary');
+        }
     </script>
 </body>
 </html>
