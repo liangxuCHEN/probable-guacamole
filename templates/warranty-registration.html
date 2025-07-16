@@ -340,8 +340,83 @@
         <span id="toast-message">Registration submitted successfully!</span>
     </div>
 
+    <!-- Access Code Error Message (Hidden by default) -->
+    <div id="access-code-error" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 shadow-lg max-w-md w-full mx-4">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-500 mb-4">
+                    <img src="https://qiniu.yayaxueqin.cn/icon/fasfa-exclamation-triangle.svg" alt="error" class="w-8 h-8">
+                </div>
+                <h3 id="error-title" class="text-xl font-semibold text-neutral-600 mb-2">
+                    Access Denied
+                </h3>
+                <p id="error-message" class="text-neutral-500">
+                    You need a valid access code to view this page.
+                </p>
+            </div>
+            <div class="flex justify-center">
+                <a href="/" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full transition-custom">
+                    <span id="back-btn-text">Back to Home</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script>
+        // 获取后端传递的变量
+        const accessCodeValid = {{ access_code|yesno:"true,false" }};
+        {% if qrcode_id %}
+        const initialQrcodeId = "{{ qrcode_id }}";
+        {% else %}
+        const initialQrcodeId = null;
+        {% endif %}
+        
+        // 检查access_code是否有效，如果无效则显示错误信息
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!accessCodeValid) {
+                const t = translations[currentLang];
+                document.getElementById('error-title').textContent = t.accessErrorTitle;
+                document.getElementById('error-message').textContent = t.accessErrorMessage;
+                document.getElementById('back-btn-text').textContent = t.backBtnText;
+                
+                // 显示错误信息
+                document.getElementById('access-code-error').classList.remove('hidden');
+                document.body.classList.add('overflow-hidden'); // 防止滚动
+            } else if (initialQrcodeId) {
+                // 如果URL中包含qrcode_id参数，自动查询产品信息
+                fetch('/api/wr', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ qrcode_id: initialQrcodeId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (data.data.is_activated) {
+                            // 产品已激活，显示产品信息
+                            showActivatedResultWithData(data.data.product);
+                        } else {
+                            // 产品未激活，显示激活表单
+                            showNotActivatedResultWithData(data.data.product);
+                        }
+                    } else {
+                        // 显示错误信息
+                        showErrorToast(data.message || '处理失败，请重试');
+                    }
+                })
+                .catch(error => {
+                    // 显示错误提示
+                    showErrorToast('网络错误，请重试');
+                    console.error('Error:', error);
+                });
+            }
+        });
+
+        
         // Language data
         const translations = {
             en: {
@@ -385,7 +460,11 @@
                 cropperTitle: "Select QR Code Area",
                 cropperDesc: "Your image is large. Please select the area containing the QR code.",
                 cropBtnText: "Crop & Scan",
-                cancelCropText: "Cancel"
+                cancelCropText: "Cancel",
+                // Access code error messages
+                accessErrorTitle: "Access Denied",
+                accessErrorMessage: "You need a valid access code to view this page.",
+                backBtnText: "Back to Home"
             },
             zh: {
                 title: "产品保修注册",
@@ -428,7 +507,11 @@
                 cropperTitle: "选择二维码区域",
                 cropperDesc: "您的图片较大，请选择包含二维码的区域。",
                 cropBtnText: "裁剪并扫描",
-                cancelCropText: "取消"
+                cancelCropText: "取消",
+                // Access code error messages
+                accessErrorTitle: "访问被拒绝",
+                accessErrorMessage: "您需要有效的访问码才能查看此页面。",
+                backBtnText: "返回首页"
             }
         };
 
@@ -548,6 +631,11 @@
             document.getElementById('cropper-desc').textContent = t.cropperDesc;
             document.getElementById('crop-btn-text').textContent = t.cropBtnText;
             document.getElementById('cancel-crop-text').textContent = t.cancelCropText;
+            
+            // Access code error messages
+            document.getElementById('error-title').textContent = t.accessErrorTitle;
+            document.getElementById('error-message').textContent = t.accessErrorMessage;
+            document.getElementById('back-btn-text').textContent = t.backBtnText;
         }
 
         // QR Code Upload Handling

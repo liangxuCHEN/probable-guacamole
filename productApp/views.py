@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 
 from .models import (
-    User, ProductType, Product, OperationRecord, RepairRecord
+    User, ProductType, Product, OperationRecord, RepairRecord, AccessCode
 )
 from .serializers import (
     UserSerializer, UserLoginSerializer, ProductTypeSerializer, ProductSerializer,
@@ -29,16 +29,14 @@ from .serializers import (
 @permission_classes([AllowAny])
 def warranty_registration(request):
     """产品保修登记-表单"""
-    if request.method == 'GET':
-        return render(request, 'warranty-registration.html')
-    
-    elif request.method == 'POST':
+    def get_product_info(qrcode_id):
+        """获取产品信息"""
         # 查询产品信息
         try:
             product = Product.objects.get(qrcode_id=request.data.get("qrcode_id"))
             # 检查产品状态
             if product.status == 3:  # 已激活
-                return JsonResponse({
+                return {
                     'status': 'success',
                     'message': '产品已激活',
                     'data': {
@@ -47,17 +45,20 @@ def warranty_registration(request):
                             'qrcode_id': product.qrcode_id,
                             'name': product.name,
                             'email': product.email,
-                            'activation_date': product.activation_date.strftime('%Y-%m-%d %H:%M:%S') if product.activation_date else None,
-                            'warranty_start': product.warranty_start_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
-                            'warranty_end': product.warranty_end_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
+                            'activation_date': product.activation_date.strftime(
+                                '%Y-%m-%d %H:%M:%S') if product.activation_date else None,
+                            'warranty_start': product.warranty_start_date.strftime(
+                                '%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
+                            'warranty_end': product.warranty_end_date.strftime(
+                                '%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
                             'under_warranty': product.is_under_warranty(),
                             'status': product.get_status_display(),
                             'installer': product.installer
                         }
                     }
-                })
+                }
             elif product.status == 2:  # 已出货，可以激活
-                return JsonResponse({
+                return {
                     'status': 'success',
                     'message': '产品未激活',
                     'data': {
@@ -67,18 +68,44 @@ def warranty_registration(request):
                             'product_type': product.product_type.name if product.product_type else None
                         }
                     }
-                })
+                }
             else:
-                return JsonResponse({
+                return {
                     'status': 'error',
                     'message': '产品状态异常，无法激活'
-                }, status=400)
+                }
 
         except Product.DoesNotExist:
-            return JsonResponse({
+            return {
                 'status': 'error',
                 'message': '未找到该产品'
-            }, status=404)
+            }
+
+    if request.method == 'GET':
+        # GET请求，需要增加一层校验，防止直接访问，url带access_code参数，然后查询AccessCode模型，检验access_code是否有效
+        # 如果有效，可以进行产品信息登记，否则返回错误信息，转跳一个错误页面
+        content = {'access_code': False}
+        access_code = request.GET.get('access_code')
+        # 若url带了qrcode_id参数
+        qrcode_id = request.GET.get('qrcode_id')
+        if access_code:
+            try:
+                access_code = AccessCode.objects.get(access_code=access_code)
+                content['access_code'] = access_code.is_active
+            except AccessCode.DoesNotExist:
+                content['access_code'] = False
+        if qrcode_id:
+            content['qrcode_id'] = qrcode_id
+        return render(request, 'warranty-registration.html', content)
+
+    elif request.method == 'POST':
+        response = get_product_info(request.data.get("qrcode_id"))
+        if response['status'] == 'success':
+            return JsonResponse(response)
+        else:
+            return JsonResponse(response, status=400)
+
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
