@@ -33,7 +33,7 @@ def warranty_registration(request):
         """获取产品信息"""
         # 查询产品信息
         try:
-            product = Product.objects.get(qrcode_id=request.data.get("qrcode_id"))
+            product = Product.objects.get(qrcode_id=qrcode_id)
             # 检查产品状态
             if product.status == 3:  # 已激活
                 return {
@@ -86,8 +86,8 @@ def warranty_registration(request):
         # 如果有效，可以进行产品信息登记，否则返回错误信息，转跳一个错误页面
         content = {'access_code': False}
         access_code = request.GET.get('access_code')
-        # 若url带了qrcode_id参数
-        qrcode_id = request.GET.get('qrcode_id')
+        # 若url带了id参数
+        qrcode_id = request.GET.get('id')
         if access_code:
             try:
                 access_code = AccessCode.objects.get(code=access_code)
@@ -99,7 +99,12 @@ def warranty_registration(request):
         return render(request, 'warranty-registration.html', content)
 
     elif request.method == 'POST':
-        response = get_product_info(request.data.get("qrcode_id"))
+        qrcode_id = request.data.get('qrcode_id')
+        if "http" in qrcode_id:
+            # 如果是URL则提取qrcode_id参数值
+            qrcode_id = qrcode_id.split('/')[-1].split('=')[-1]
+
+        response = get_product_info(qrcode_id)
         if response['status'] == 'success':
             return JsonResponse(response)
         else:
