@@ -96,6 +96,8 @@ class Product(models.Model):
     city = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户城市')
     country = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户国家')
     email = models.EmailField(null=True, blank=True, verbose_name='客户邮箱')
+    # 安装信息
+    installer = models.CharField(max_length=255, null=True, blank=True, verbose_name='安装人员信息')
     # 厂家备注
     factory_remark = models.TextField(null=True, blank=True, verbose_name='厂家备注')
 
@@ -132,6 +134,23 @@ class Product(models.Model):
             self.save()
             return True
         return False
+
+
+class AccessCode(models.Model):
+    code = models.CharField(max_length=16, unique=True, db_index=True, verbose_name='访问码')
+    is_active = models.BooleanField(default=False, verbose_name='是否有效')
+    # 有效期，如果是-1则为长期有效
+    validity_period = models.IntegerField(default=-1, verbose_name='有效期(天)')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '访问码'
+        verbose_name_plural = '访问码'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.code}"
 
 
 class OperationRecord(models.Model):
