@@ -51,7 +51,8 @@ def warranty_registration(request):
                             'warranty_start': product.warranty_start_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
                             'warranty_end': product.warranty_end_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
                             'under_warranty': product.is_under_warranty(),
-                            'status': product.get_status_display()
+                            'status': product.get_status_display(),
+                            'installer': product.installer
                         }
                     }
                 })
@@ -98,6 +99,7 @@ def activate_product(request):
             product.email = serializer.validated_data.get('email')
             product.city = serializer.validated_data.get('city')
             product.country = serializer.validated_data.get('country')
+            product.installer = serializer.validated_data.get('installer')
             
             if product.activate():
                 product.save()  # 保存客户信息
@@ -119,6 +121,7 @@ def activate_product(request):
                         'warranty_start': product.warranty_start_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
                         'warranty_end': product.warranty_end_date.strftime('%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
                         'under_warranty': product.is_under_warranty(),
+                        'installer': product.installer,
                     }
                 })
             return Response({
@@ -355,6 +358,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             product.email = serializer.validated_data.get('email')
             product.city = serializer.validated_data.get('city')
             product.country = serializer.validated_data.get('country')
+            product.installer = serializer.validated_data.get('installer')
             
             if product.activate():
                 product.save()  # 保存客户信息

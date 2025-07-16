@@ -65,7 +65,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['id', 'qrcode_id', 'product_type', 'product_type_name', 'agent', 'agent_name', 
                  'shipping_date', 'activation_date', 'name', 'phone', 'email', 'city', 'country',
                  'warranty_start_date', 'warranty_end_date', 'status', 'status_display', 
-                 'under_warranty', 'created_at', 'updated_at', "factory_remark"]
+                 'under_warranty', 'created_at', 'updated_at', 'factory_remark', 'installer']
         read_only_fields = ['created_at', 'updated_at', 'warranty_start_date', 'warranty_end_date']
     
     def get_under_warranty(self, obj):
@@ -97,6 +97,7 @@ class ProductActivationSerializer(serializers.Serializer):
     email = serializers.EmailField()
     city = serializers.CharField(max_length=50, required=False, allow_blank=True)
     country = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    installer = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
     def validate(self, data):
         """

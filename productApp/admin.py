@@ -51,8 +51,8 @@ from django.contrib import messages
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('qrcode_id', 'product_type', 'agent', 'name', 'phone', 'email', 'status', 
-                   'shipping_date', 'activation_date', 'is_under_warranty')
+    list_display = ('qrcode_id', 'product_type', 'agent', 'name', 'status', 'shipping_date', 'activation_date',
+                    'is_under_warranty')
     list_filter = ('status', 'product_type', 'shipping_date', 'activation_date')
     search_fields = ('qrcode_id', 'product_type__name', 'agent__username', 'name', 'phone', 'email')
     readonly_fields = ('created_at', 'updated_at', 'warranty_start_date', 'warranty_end_date')
@@ -133,7 +133,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('agent', 'shipping_date')
         }),
         ('客户信息', {
-            'fields': ('name', 'phone', 'email', 'city', 'country')
+            'fields': ('name', 'phone', 'email', 'city', 'country', 'installer')
         }),
         ('激活和保修信息', {
             'fields': ('activation_date', 'warranty_start_date', 'warranty_end_date')
