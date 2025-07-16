@@ -236,6 +236,14 @@
                     <input type="tel" id="phone" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
                 </div>
                 
+                <!-- Installer -->
+                <div>
+                    <label for="installer" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="installer-label">Installer</span>
+                    </label>
+                    <input type="text" id="installer" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
+                </div>
+                
                 <!-- Submit Button -->
                 <div class="pt-4">
                     <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg shadow-md transition-custom hover:shadow-lg flex items-center justify-center">
@@ -306,6 +314,14 @@
                                 <span id="result-activation-label">Activation Date</span>
                             </p>
                             <p id="result-activation-date" class="font-medium text-neutral-600"></p>
+                        </div>
+                        
+                        <!-- Installer -->
+                        <div>
+                            <p class="text-sm text-neutral-400 mb-1">
+                                <span id="result-installer-label">Installer</span>
+                            </p>
+                            <p id="result-installer" class="font-medium text-neutral-600"></p>
                         </div>
                     </div>
                 </div>
@@ -462,6 +478,7 @@
                 countryLabel: "Country",
                 cityLabel: "City",
                 phoneLabel: "Phone Number",
+                installerLabel: "Installer",
                 submitBtnText: "Submit Registration",
                 nameErrorText: "Please enter your full name",
                 emailErrorText: "Please enter a valid email address",
@@ -472,6 +489,7 @@
                 resultNameLabel: "Registered Name",
                 resultEmailLabel: "Email Address",
                 resultActivationLabel: "Activation Date",
+                resultInstallerLabel: "Installer",
                 resultWarrantyStatusLabel: "Warranty Status",
                 resultWarrantyExpired: "Your warranty has expired",
                 resultWarrantyActive: "Your warranty is active",
@@ -512,6 +530,8 @@
                 countryLabel: "国家",
                 cityLabel: "城市",
                 phoneLabel: "电话号码",
+                installerLabel: "安装人员",
+                resultInstallerLabel: "安装人员",
                 submitBtnText: "提交注册",
                 nameErrorText: "请输入您的姓名",
                 emailErrorText: "请输入有效的电子邮箱地址",
@@ -643,6 +663,8 @@
             document.getElementById('country-label').textContent = t.countryLabel;
             document.getElementById('city-label').textContent = t.cityLabel;
             document.getElementById('phone-label').textContent = t.phoneLabel;
+            document.getElementById('installer-label').textContent = t.installerLabel;
+            document.getElementById('result-installer-label').textContent = t.installerLabel;
             document.getElementById('submit-btn-text').textContent = t.submitBtnText;
             document.getElementById('name-error-text').textContent = t.nameErrorText;
             document.getElementById('email-error-text').textContent = t.emailErrorText;
@@ -1044,6 +1066,7 @@
             document.getElementById('result-product-id').textContent = product.qrcode_id;
             document.getElementById('result-name').textContent = product.name;
             document.getElementById('result-email').textContent = product.email;
+            document.getElementById('result-installer').textContent = product.installer || '';
             document.getElementById('result-activation-date').textContent = new Date(product.activation_date).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -1116,7 +1139,8 @@
                     email: emailInput.value.trim(),
                     phone: document.getElementById('phone').value.trim(),
                     city: document.getElementById('city').value.trim(),
-                    country: document.getElementById('country').value.trim()
+                    country: document.getElementById('country').value.trim(),
+                    installer: document.getElementById('installer').value.trim()
                 };
                 
                 // 发送激活请求
@@ -1183,6 +1207,7 @@
             document.getElementById('country').value = '';
             document.getElementById('city').value = '';
             document.getElementById('phone').value = '';
+            document.getElementById('installer').value = '';
             
             // Remove error states
             nameError.classList.add('hidden');
