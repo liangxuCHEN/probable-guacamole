@@ -354,10 +354,18 @@
                     You need a valid access code to view this page.
                 </p>
             </div>
-            <div class="flex justify-center">
-                <a href="/" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full transition-custom">
-                    <span id="back-btn-text">Back to Home</span>
-                </a>
+            <div class="space-y-4">
+                <div class="flex flex-col">
+                    <label for="access-code-input" class="block text-sm font-medium text-neutral-500 mb-1">
+                        <span id="access-code-label">Access Code</span>
+                    </label>
+                    <input type="text" id="access-code-input" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" placeholder="Enter access code">
+                </div>
+                <div class="flex justify-center">
+                    <button id="submit-access-code" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full transition-custom">
+                        <span id="submit-access-code-text">Submit</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -378,11 +386,28 @@
                 const t = translations[currentLang];
                 document.getElementById('error-title').textContent = t.accessErrorTitle;
                 document.getElementById('error-message').textContent = t.accessErrorMessage;
-                document.getElementById('back-btn-text').textContent = t.backBtnText;
                 
                 // 显示错误信息
                 document.getElementById('access-code-error').classList.remove('hidden');
                 document.body.classList.add('overflow-hidden'); // 防止滚动
+                
+                // 添加提交access code的事件监听器
+                document.getElementById('submit-access-code').addEventListener('click', function() {
+                    const accessCode = document.getElementById('access-code-input').value.trim();
+                    if (accessCode) {
+                        // 构建URL并重定向
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('access_code', accessCode);
+                        window.location.href = currentUrl.toString();
+                    }
+                });
+                
+                // 添加按Enter键提交的功能
+                document.getElementById('access-code-input').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        document.getElementById('submit-access-code').click();
+                    }
+                });
             } else if (initialQrcodeId) {
                 // 如果URL中包含qrcode_id参数，自动查询产品信息
                 fetch('/api/wr', {
@@ -464,7 +489,10 @@
                 // Access code error messages
                 accessErrorTitle: "Access Denied",
                 accessErrorMessage: "You need a valid access code to view this page.",
-                backBtnText: "Back to Home"
+                backBtnText: "Back to Home",
+                accessCodeLabel: "Access Code",
+                accessCodePlaceholder: "Enter access code",
+                submitAccessCodeText: "Submit"
             },
             zh: {
                 title: "产品保修注册",
@@ -511,7 +539,10 @@
                 // Access code error messages
                 accessErrorTitle: "访问被拒绝",
                 accessErrorMessage: "您需要有效的访问码才能查看此页面。",
-                backBtnText: "返回首页"
+                backBtnText: "返回首页",
+                accessCodeLabel: "访问码",
+                accessCodePlaceholder: "请输入访问码",
+                submitAccessCodeText: "提交"
             }
         };
 
@@ -635,7 +666,9 @@
             // Access code error messages
             document.getElementById('error-title').textContent = t.accessErrorTitle;
             document.getElementById('error-message').textContent = t.accessErrorMessage;
-            document.getElementById('back-btn-text').textContent = t.backBtnText;
+            document.getElementById('access-code-label').textContent = t.accessCodeLabel;
+            document.getElementById('access-code-input').placeholder = t.accessCodePlaceholder;
+            document.getElementById('submit-access-code-text').textContent = t.submitAccessCodeText;
         }
 
         // QR Code Upload Handling

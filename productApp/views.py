@@ -90,7 +90,7 @@ def warranty_registration(request):
         qrcode_id = request.GET.get('qrcode_id')
         if access_code:
             try:
-                access_code = AccessCode.objects.get(access_code=access_code)
+                access_code = AccessCode.objects.get(code=access_code)
                 content['access_code'] = access_code.is_active
             except AccessCode.DoesNotExist:
                 content['access_code'] = False

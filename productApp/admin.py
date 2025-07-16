@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord
+from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord, AccessCode
 
 # 修改django管理的名字
 admin.site.site_header = '产品管理系统'
@@ -177,3 +177,13 @@ class RepairRecordAdmin(admin.ModelAdmin):
         if obj:  # 编辑现有记录
             return self.readonly_fields + ('product', 'customer')  # 产品和客户信息不允许修改
         return self.readonly_fields
+
+
+@admin.register(AccessCode)
+class AccessCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'is_active', 'validity_period', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('code', 'is_active')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)
+
