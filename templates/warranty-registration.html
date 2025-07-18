@@ -203,7 +203,7 @@
                 <div>
                     <label for="email" class="block text-sm font-medium text-neutral-500 mb-1">
                         <span id="email-label">Email Address</span>
-                        <span class="text-primary ml-1">*</span>
+                        <span id="email-required" class="text-primary ml-1">*</span>
                     </label>
                     <input type="email" id="email" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" required>
                     <p id="email-error" class="mt-1 text-sm text-red-500 hidden">
@@ -232,16 +232,26 @@
                 <div>
                     <label for="phone" class="block text-sm font-medium text-neutral-500 mb-1">
                         <span id="phone-label">Phone Number</span>
+                        <span id="phone-required" class="text-primary ml-1 hidden">*</span>
                     </label>
                     <input type="tel" id="phone" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
+                    <p id="phone-error" class="mt-1 text-sm text-red-500 hidden">
+                        <img src="https://qiniu.yayaxueqin.cn/icon/fasfa-exclamation-circle.svg" alt="exclamation-circle icon" class="w-5 h-5 mr-1">
+                        <span id="phone-error-text">请输入有效的电话号码</span>
+                    </p>
                 </div>
                 
                 <!-- Installer -->
                 <div>
                     <label for="installer" class="block text-sm font-medium text-neutral-500 mb-1">
                         <span id="installer-label">Installer</span>
+                        <span class="text-primary ml-1">*</span>
                     </label>
-                    <input type="text" id="installer" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom">
+                    <input type="text" id="installer" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" required>
+                    <p id="installer-error" class="mt-1 text-sm text-red-500 hidden">
+                        <img src="https://qiniu.yayaxueqin.cn/icon/fasfa-exclamation-circle.svg" alt="exclamation-circle icon" class="w-5 h-5 mr-1">
+                        <span id="installer-error-text">Please enter installer information</span>
+                    </p>
                 </div>
                 
                 <!-- Submit Button -->
@@ -482,6 +492,8 @@
                 submitBtnText: "Submit Registration",
                 nameErrorText: "Please enter your full name",
                 emailErrorText: "Please enter a valid email address",
+                phoneErrorText: "Please enter a valid phone number",
+                installerErrorText: "Please enter installer information",
                 notActivatedTitle: "Product Not Activated",
                 notActivatedDesc: "This product has not been registered yet. Please fill out the form below to activate warranty.",
                 activatedTitle: "Product Warranty Information",
@@ -535,6 +547,8 @@
                 submitBtnText: "提交注册",
                 nameErrorText: "请输入您的姓名",
                 emailErrorText: "请输入有效的电子邮箱地址",
+                phoneErrorText: "请输入有效的电话号码",
+                installerErrorText: "请输入安装人员信息",
                 notActivatedTitle: "产品未激活",
                 notActivatedDesc: "此产品尚未注册。请填写以下表单以激活保修。",
                 activatedTitle: "产品保修信息",
@@ -684,6 +698,25 @@
             document.getElementById('cropper-desc').textContent = t.cropperDesc;
             document.getElementById('crop-btn-text').textContent = t.cropBtnText;
             document.getElementById('cancel-crop-text').textContent = t.cancelCropText;
+            
+            // 根据语言设置必填字段
+            if (currentLang === 'zh') {
+                // 中文：手机必填，邮箱选填
+                document.getElementById('phone-required').classList.remove('hidden');
+                document.getElementById('email-required').classList.add('hidden');
+                document.getElementById('phone').setAttribute('required', '');
+                document.getElementById('email').removeAttribute('required');
+                document.getElementById('phone-error-text').textContent = t.phoneErrorText;
+                document.getElementById('installer-error-text').textContent = t.installerErrorText;
+            } else {
+                // 英文：邮箱必填，手机选填
+                document.getElementById('phone-required').classList.add('hidden');
+                document.getElementById('email-required').classList.remove('hidden');
+                document.getElementById('phone').removeAttribute('required');
+                document.getElementById('email').setAttribute('required', '');
+                document.getElementById('phone-error-text').textContent = t.phoneErrorText;
+                document.getElementById('installer-error-text').textContent = t.installerErrorText;
+            }
             
             // Access code error messages
             document.getElementById('error-title').textContent = t.accessErrorTitle;
@@ -1120,15 +1153,44 @@
                 nameInput.classList.remove('border-red-300');
             }
             
-            // Validate email
+            // Validate email or phone based on language
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(emailInput.value.trim())) {
-                emailError.classList.remove('hidden');
-                emailInput.classList.add('border-red-300');
+            const phoneInput = document.getElementById('phone');
+            const phoneError = document.getElementById('phone-error');
+            
+            if (currentLang === 'zh') {
+                // 中文：验证手机号
+                if (phoneInput.value.trim() === '') {
+                    phoneError.classList.remove('hidden');
+                    phoneInput.classList.add('border-red-300');
+                    isValid = false;
+                } else {
+                    phoneError.classList.add('hidden');
+                    phoneInput.classList.remove('border-red-300');
+                }
+            } else {
+                // 英文：验证邮箱
+                if (!emailRegex.test(emailInput.value.trim())) {
+                    emailError.classList.remove('hidden');
+                    emailInput.classList.add('border-red-300');
+                    isValid = false;
+                } else {
+                    emailError.classList.add('hidden');
+                    emailInput.classList.remove('border-red-300');
+                }
+            }
+            
+            // Validate installer (required for both languages)
+            const installerInput = document.getElementById('installer');
+            const installerError = document.getElementById('installer-error');
+            
+            if (installerInput.value.trim() === '') {
+                installerError.classList.remove('hidden');
+                installerInput.classList.add('border-red-300');
                 isValid = false;
             } else {
-                emailError.classList.add('hidden');
-                emailInput.classList.remove('border-red-300');
+                installerError.classList.add('hidden');
+                installerInput.classList.remove('border-red-300');
             }
             
             if (isValid) {
