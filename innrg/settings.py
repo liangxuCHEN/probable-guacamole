@@ -203,3 +203,5 @@ QINIU_BASE_BACKET_NAME = 'wave-ship'  # 这是公开
 # 七牛图片处理
 QINIU_THUMBNAIL = "-300_200_c"
 QINIU_ORIGIN = "-c"
+
+QINIU_BASE_URL = 'http://qiniu.yayaxueqin.cn/'

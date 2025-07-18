@@ -1,5 +1,8 @@
 import uuid
 import os
+
+from django.conf import settings
+
 from .utils.qiniu_tools import QiNiuStorage
 from django.db import models
 from django.contrib.auth.models import AbstractUser
@@ -239,6 +242,17 @@ class Attachment(models.Model):
             self.file_url = qiniu.upload(new_filename, file_obj, is_rename=False)
 
         super().save(*args, **kwargs)
+
+    @property
+    def preview_url(self):
+        """获取头像URL"""
+        # 返回头像,有头像是网页直接返回，没有则默认是七牛
+        if self.file_url:
+            if self.file_url.startswith('http'):
+                return self.file_url
+            else:
+                return f"{settings.QINIU_BASE_URL}{self.file_url}-preview"
+        return ""
 
 
 class RepairRecord(models.Model):

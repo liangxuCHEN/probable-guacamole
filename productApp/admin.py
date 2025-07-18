@@ -165,19 +165,48 @@ class OperationRecordAdmin(admin.ModelAdmin):
         return False  # 操作记录不允许删除
 
 
+from django import forms
+
+class AttachmentAdminForm(forms.ModelForm):
+    upload_file = forms.FileField(required=False, label='上传文件')
+    
+    class Meta:
+        model = Attachment
+        fields = ('name', 'file_type', 'description', 'file_url')
+        widgets = {
+            'file_url': forms.TextInput(attrs={'readonly': 'readonly'}),
+        }
+
 class AttachmentInline(GenericTabularInline):
     model = Attachment
+    form = AttachmentAdminForm
     extra = 1
-    fields = ('name', 'file_url', 'file_type', 'description')
+    fields = ('name', 'upload_file', 'file_type', 'description', 'file_url')
+    readonly_fields = ('file_url',)
+    
+    def get_fields(self, request, obj=None):
+        """根据是否是新建记录调整字段顺序"""
+        print(obj)
+        if obj and obj.attachments:  # 如果是编辑已有记录且已有文件
+            return ('name', 'file_url', 'upload_file', 'file_type', 'description')
+        return ('name', 'upload_file', 'file_type', 'description')
 
 
 @admin.register(Attachment)
 class AttachmentAdmin(admin.ModelAdmin):
+    form = AttachmentAdminForm
     list_display = ('name', 'file_type', 'content_type', 'object_id', 'created_at')
     list_filter = ('file_type', 'content_type', 'created_at')
     search_fields = ('name', 'description', 'file_url')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'file_url')
     ordering = ('-created_at',)
+    fields = ('name', 'upload_file', 'file_url', 'file_type', 'description', 'content_type', 'object_id', 'created_at', 'updated_at')
+    
+    def save_model(self, request, obj, form, change):
+        if form.cleaned_data.get('upload_file'):
+            # 将上传的文件赋值给file_url，让模型的save方法处理上传到七牛
+            obj.file_url = form.cleaned_data['upload_file']
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(RepairRecord)
@@ -194,6 +223,23 @@ class RepairRecordAdmin(admin.ModelAdmin):
         if obj:  # 编辑现有记录
             return self.readonly_fields + ('product',)  # 产品信息不允许修改
         return self.readonly_fields
+    
+    def save_formset(self, request, form, formset, change):
+        """处理内联表单集的保存，特别是文件上传"""
+        instances = formset.save(commit=False)
+        for instance in instances:
+            # 检查表单中是否有上传的文件
+            for form in formset.forms:
+                if form.instance == instance and form.cleaned_data.get('upload_file'):
+                    # 将上传的文件赋值给file_url，让模型的save方法处理上传到七牛
+                    instance.file_url = form.cleaned_data['upload_file']
+            instance.save()
+        
+        # 处理已删除的实例
+        for obj in formset.deleted_objects:
+            obj.delete()
+        
+        formset.save_m2m()
 
 
 @admin.register(AccessCode)
