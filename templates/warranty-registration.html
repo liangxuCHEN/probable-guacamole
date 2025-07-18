@@ -548,8 +548,8 @@
                 productIdLabel: "产品ID",
                 nameLabel: "姓名",
                 emailLabel: "电子邮箱",
-                countryLabel: "国家",
-                cityLabel: "城市",
+                countryLabel: "省份",
+                cityLabel: "地址",
                 phoneLabel: "电话号码",
                 installerLabel: "安装人员",
                 resultInstallerLabel: "安装人员",
@@ -1113,12 +1113,9 @@
             document.getElementById('result-email').textContent = product.email;
             document.getElementById('result-phone-date').textContent = product.phone || '';
             document.getElementById('result-installer').textContent = product.installer || '';
-            document.getElementById('result-activation-date').textContent = new Date(product.activation_date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
+            document.getElementById('result-activation-date').textContent = new Date(
+                product.activation_date).toISOString().split('T')[0]
+
             // 显示保修状态
             const warrantyStatus = document.getElementById('warranty-status');
             warrantyStatus.innerHTML = '';
