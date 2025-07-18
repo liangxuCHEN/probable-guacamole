@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord
+from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord, Attachment
+from django.contrib.contenttypes.models import ContentType
 
 
 class WechatProfileSerializer(serializers.ModelSerializer):
@@ -119,17 +120,52 @@ class OperationRecordSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at']
 
 
+class AttachmentSerializer(serializers.ModelSerializer):
+    file_type_display = serializers.CharField(source='get_file_type_display', read_only=True)
+    
+    class Meta:
+        model = Attachment
+        fields = ['id', 'name', 'file_url', 'file_type', 'file_type_display', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class AttachmentCreateSerializer(serializers.ModelSerializer):
+    content_type_id = serializers.IntegerField(write_only=True)
+    object_id = serializers.IntegerField(write_only=True)
+    
+    class Meta:
+        model = Attachment
+        fields = ['name', 'file_url', 'file_type', 'description', 'content_type_id', 'object_id']
+    
+    def validate(self, data):
+        """
+        验证content_type_id和object_id是否有效
+        """
+        content_type_id = data.get('content_type_id')
+        object_id = data.get('object_id')
+        
+        try:
+            content_type = ContentType.objects.get(id=content_type_id)
+            model_class = content_type.model_class()
+            model_class.objects.get(id=object_id)
+        except (ContentType.DoesNotExist, model_class.DoesNotExist):
+            raise serializers.ValidationError("提供的内容类型或对象ID无效")
+        
+        return data
+
+
 class RepairRecordSerializer(serializers.ModelSerializer):
     product_qrcode = serializers.ReadOnlyField(source='product.qrcode_id')
     customer_name = serializers.ReadOnlyField(source='customer.username')
     technician_name = serializers.ReadOnlyField(source='technician.username', allow_null=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    attachments = AttachmentSerializer(many=True, read_only=True)
     
     class Meta:
         model = RepairRecord
         fields = ['id', 'product', 'product_qrcode', 'customer', 'customer_name', 
                  'technician', 'technician_name', 'repair_reason', 'repair_solution', 
-                 'repair_date', 'status', 'status_display', 'created_at', 'updated_at']
+                 'repair_date', 'status', 'status_display', 'attachments', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 

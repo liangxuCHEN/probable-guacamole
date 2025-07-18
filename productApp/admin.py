@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord, AccessCode
+from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord, AccessCode, Attachment
+from django.contrib.contenttypes.admin import GenericTabularInline
 
 # 修改django管理的名字
 admin.site.site_header = '产品管理系统'
@@ -164,6 +165,21 @@ class OperationRecordAdmin(admin.ModelAdmin):
         return False  # 操作记录不允许删除
 
 
+class AttachmentInline(GenericTabularInline):
+    model = Attachment
+    extra = 1
+    fields = ('name', 'file_url', 'file_type', 'description')
+
+
+@admin.register(Attachment)
+class AttachmentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'file_type', 'content_type', 'object_id', 'created_at')
+    list_filter = ('file_type', 'content_type', 'created_at')
+    search_fields = ('name', 'description', 'file_url')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-created_at',)
+
+
 @admin.register(RepairRecord)
 class RepairRecordAdmin(admin.ModelAdmin):
     list_display = ('product', 'customer', 'technician', 'status', 'repair_date', 'created_at')
@@ -172,6 +188,7 @@ class RepairRecordAdmin(admin.ModelAdmin):
                     'repair_reason', 'repair_solution')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('-created_at',)
+    inlines = [AttachmentInline]
     
     def get_readonly_fields(self, request, obj=None):
         if obj:  # 编辑现有记录

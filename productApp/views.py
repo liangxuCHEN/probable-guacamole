@@ -13,14 +13,16 @@ from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 
 from .models import (
-    User, ProductType, Product, OperationRecord, RepairRecord, AccessCode
+    User, ProductType, Product, OperationRecord, RepairRecord, AccessCode, Attachment
 )
 from .serializers import (
     UserSerializer, UserLoginSerializer, ProductTypeSerializer, ProductSerializer,
     ProductCreateSerializer, ProductBulkCreateSerializer, ProductShippingSerializer,
     ProductActivationSerializer, OperationRecordSerializer, RepairRecordSerializer,
-    RepairRecordCreateSerializer, WarrantyCheckSerializer
+    RepairRecordCreateSerializer, WarrantyCheckSerializer, AttachmentSerializer,
+    AttachmentCreateSerializer
 )
+from django.contrib.contenttypes.models import ContentType
 
 
 @csrf_exempt
@@ -483,6 +485,28 @@ class OperationRecordViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
+class AttachmentViewSet(viewsets.ModelViewSet):
+    """附件管理视图集"""
+    queryset = Attachment.objects.all()
+    serializer_class = AttachmentSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['file_type', 'content_type', 'object_id']
+    search_fields = ['name', 'description']
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return AttachmentCreateSerializer
+        return self.serializer_class
+
+    def perform_create(self, serializer):
+        """创建附件"""
+        try:
+            serializer.save()
+        except Exception as e:
+            raise ValidationError(f"创建附件失败：{str(e)}")
+
+
 class RepairRecordViewSet(viewsets.ModelViewSet):
     """维修记录管理视图集"""
     queryset = RepairRecord.objects.all()
@@ -550,3 +574,41 @@ class RepairRecordViewSet(viewsets.ModelViewSet):
             'status': 'success',
             'message': '维修完成'
         })
+        
+    @action(detail=True, methods=['get'])
+    def attachments(self, request, pk=None):
+        """获取维修记录的附件"""
+        repair_record = self.get_object()
+        attachments = repair_record.attachments
+        serializer = AttachmentSerializer(attachments, many=True)
+        return Response({
+            'status': 'success',
+            'data': serializer.data
+        })
+        
+    @action(detail=True, methods=['post'])
+    def add_attachment(self, request, pk=None):
+        """为维修记录添加附件"""
+        repair_record = self.get_object()
+        
+        # 获取RepairRecord的ContentType
+        content_type = ContentType.objects.get_for_model(RepairRecord)
+        
+        # 准备数据
+        attachment_data = request.data.copy()
+        attachment_data['content_type_id'] = content_type.id
+        attachment_data['object_id'] = repair_record.id
+        
+        serializer = AttachmentCreateSerializer(data=attachment_data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'status': 'success',
+                'message': '附件添加成功',
+                'data': serializer.data
+            })
+        return Response({
+            'status': 'error',
+            'message': '附件添加失败',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)

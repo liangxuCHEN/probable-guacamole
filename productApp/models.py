@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 # Create your models here.
 class User(AbstractUser):
@@ -179,6 +181,40 @@ class OperationRecord(models.Model):
         return f"{self.product.qrcode_id} - {self.get_operation_type_display()}"
 
 
+class Attachment(models.Model):
+    """附件模型，可以关联到多种不同的模型"""
+    FILE_TYPE_CHOICES = [
+        (1, '图片'),
+        (2, '文档'),
+        (3, '视频'),
+        (4, '其他')
+    ]
+    
+    name = models.CharField(max_length=255, verbose_name='附件名称')
+    file_url = models.URLField(max_length=500, verbose_name='文件URL')
+    file_type = models.IntegerField(choices=FILE_TYPE_CHOICES, default=4, verbose_name='文件类型')
+    description = models.TextField(null=True, blank=True, verbose_name='描述')
+    
+    # 通用关联字段
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name='关联模型')
+    object_id = models.PositiveIntegerField(verbose_name='关联对象ID')
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    
+    class Meta:
+        verbose_name = '附件'
+        verbose_name_plural = '附件'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.get_file_type_display()}"
+
+
 class RepairRecord(models.Model):
     """维修记录表"""
     STATUS_CHOICES = [
@@ -207,3 +243,9 @@ class RepairRecord(models.Model):
 
     def __str__(self):
         return f"{self.product.qrcode_id} - {self.get_status_display()}"
+    
+    @property
+    def attachments(self):
+        """获取与此维修记录关联的所有附件"""
+        ct = ContentType.objects.get_for_model(self)
+        return Attachment.objects.filter(content_type=ct, object_id=self.id)
