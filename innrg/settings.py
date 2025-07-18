@@ -192,3 +192,14 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
 }
+
+# 七牛云个人中心中的**AK密匙**
+QINIU_ACCESS_KEY = env('QINIU_ACCESS_KEY')
+# **SK密匙**
+QINIU_SECRET_KEY = env('QINIU_SECRET_KEY')
+# 存储空间命名
+QINIU_BASE_BACKET_NAME = 'wave-ship'  # 这是公开
+
+# 七牛图片处理
+QINIU_THUMBNAIL = "-300_200_c"
+QINIU_ORIGIN = "-c"

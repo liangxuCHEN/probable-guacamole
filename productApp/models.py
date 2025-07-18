@@ -1,9 +1,19 @@
+import uuid
+import os
+from .utils.qiniu_tools import QiNiuStorage
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+
+
+def generate_uuid_filename(filename):
+    """生成基于UUID的文件名"""
+    ext = filename.split('.')[-1]
+    return f"{uuid.uuid4().hex[:8]}.{ext}"
+
 
 # Create your models here.
 class User(AbstractUser):
@@ -192,6 +202,7 @@ class Attachment(models.Model):
     
     name = models.CharField(max_length=255, verbose_name='附件名称')
     file_url = models.URLField(max_length=500, verbose_name='文件URL')
+    file_name = models.CharField(max_length=255, null=True, blank=True, verbose_name='文件名')
     file_type = models.IntegerField(choices=FILE_TYPE_CHOICES, default=4, verbose_name='文件类型')
     description = models.TextField(null=True, blank=True, verbose_name='描述')
     
@@ -213,6 +224,21 @@ class Attachment(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.get_file_type_display()}"
+
+    def save(self, *args, **kwargs):
+
+        if hasattr(self.file_url, 'file'):  # 如果是文件对象
+            file_obj = self.file_url
+            # 生成新文件名
+            new_filename = generate_uuid_filename(file_obj.name)
+            # 设置文件名
+            if not self.file_name:
+                self.file_name = os.path.splitext(file_obj.name)[0]
+            # 上传到七牛云
+            qiniu = QiNiuStorage('innrg_file')
+            self.file_url = qiniu.upload(new_filename, file_obj, is_rename=False)
+
+        super().save(*args, **kwargs)
 
 
 class RepairRecord(models.Model):
