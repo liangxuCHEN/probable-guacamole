@@ -156,14 +156,13 @@ class AttachmentCreateSerializer(serializers.ModelSerializer):
 
 class RepairRecordSerializer(serializers.ModelSerializer):
     product_qrcode = serializers.ReadOnlyField(source='product.qrcode_id')
-    customer_name = serializers.ReadOnlyField(source='customer.username')
     technician_name = serializers.ReadOnlyField(source='technician.username', allow_null=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     attachments = AttachmentSerializer(many=True, read_only=True)
     
     class Meta:
         model = RepairRecord
-        fields = ['id', 'product', 'product_qrcode', 'customer', 'customer_name', 
+        fields = ['id', 'product', 'product_qrcode', 'name', 'phone', 'email', 'address', 'country',
                  'technician', 'technician_name', 'repair_reason', 'repair_solution', 
                  'repair_date', 'status', 'status_display', 'attachments', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
@@ -172,34 +171,26 @@ class RepairRecordSerializer(serializers.ModelSerializer):
 class RepairRecordCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = RepairRecord
-        fields = ['product', 'repair_reason']
+        fields = ['product', 'repair_reason', 'name', 'phone', 'email', 'address', 'country']
     
     def create(self, validated_data):
         """
-        创建维修记录时，从产品中获取客户信息
+        创建维修记录时，从产品中获取客户信息（如果未提供）
         """
         product = validated_data['product']
-        # 查找与产品关联的客户
-        try:
-            customer = User.objects.get(email=product.email, phone=product.phone)
-        except User.DoesNotExist:
-            # 如果客户不存在，创建一个新客户
-            customer = User.objects.create_user(
-                username=f"customer_{product.phone}",
-                email=product.email,
-                phone=product.phone,
-                user_type=User.ClIENT,
-                first_name=product.name,
-                country=product.country,
-                city=product.city
-            )
+        
+        # 如果未提供客户信息，则从产品中获取
+        if not validated_data.get('name'):
+            validated_data['name'] = product.name
+        if not validated_data.get('phone'):
+            validated_data['phone'] = product.phone
+        if not validated_data.get('email'):
+            validated_data['email'] = product.email
+        if not validated_data.get('country'):
+            validated_data['country'] = product.country
         
         # 创建维修记录
-        repair_record = RepairRecord.objects.create(
-            product=product,
-            customer=customer,
-            repair_reason=validated_data['repair_reason']
-        )
+        repair_record = RepairRecord.objects.create(**validated_data)
         return repair_record
 
 

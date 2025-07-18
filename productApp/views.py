@@ -512,8 +512,8 @@ class RepairRecordViewSet(viewsets.ModelViewSet):
     queryset = RepairRecord.objects.all()
     serializer_class = RepairRecordSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['product', 'customer', 'technician', 'status']
-    search_fields = ['product__qrcode_id', 'repair_reason', 'repair_solution']
+    filterset_fields = ['product', 'technician', 'status', 'name', 'phone', 'email']
+    search_fields = ['product__qrcode_id', 'repair_reason', 'repair_solution', 'name', 'phone', 'email']
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):

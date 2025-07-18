@@ -225,14 +225,18 @@ class RepairRecord(models.Model):
     ]
     
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='repair_records', verbose_name='产品')
-    customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='repair_requests', 
-                               limit_choices_to={'user_type': User.ClIENT}, verbose_name='客户')
     technician = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='repairs_handled',
                                  limit_choices_to={'user_type': User.EMPLOYEE}, verbose_name='技术人员')
     repair_reason = models.TextField(verbose_name='维修原因')
     repair_solution = models.TextField(null=True, blank=True, verbose_name='维修解决方案')
     repair_date = models.DateTimeField(null=True, blank=True, verbose_name='维修日期')
     status = models.IntegerField(choices=STATUS_CHOICES, default=1, verbose_name='状态')
+    # 客户信息：name, phone, city, country, email
+    name = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户姓名')
+    phone = models.CharField(max_length=20, null=True, blank=True, verbose_name='客户电话')
+    address = models.CharField(max_length=127, null=True, blank=True, verbose_name='客户地址')
+    country = models.CharField(max_length=50, null=True, blank=True, verbose_name='客户国家/省份')
+    email = models.EmailField(null=True, blank=True, verbose_name='客户邮箱')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 

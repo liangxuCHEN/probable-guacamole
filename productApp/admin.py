@@ -182,9 +182,9 @@ class AttachmentAdmin(admin.ModelAdmin):
 
 @admin.register(RepairRecord)
 class RepairRecordAdmin(admin.ModelAdmin):
-    list_display = ('product', 'customer', 'technician', 'status', 'repair_date', 'created_at')
+    list_display = ('product', 'name', 'phone', 'technician', 'status', 'repair_date', 'created_at')
     list_filter = ('status', 'repair_date', 'created_at')
-    search_fields = ('product__qrcode_id', 'customer__username', 'technician__username', 
+    search_fields = ('product__qrcode_id', 'name', 'phone', 'email', 'technician__username', 
                     'repair_reason', 'repair_solution')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('-created_at',)
@@ -192,7 +192,7 @@ class RepairRecordAdmin(admin.ModelAdmin):
     
     def get_readonly_fields(self, request, obj=None):
         if obj:  # 编辑现有记录
-            return self.readonly_fields + ('product', 'customer')  # 产品和客户信息不允许修改
+            return self.readonly_fields + ('product',)  # 产品信息不允许修改
         return self.readonly_fields
 
 
