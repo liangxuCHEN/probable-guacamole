@@ -45,6 +45,7 @@ def warranty_registration(request):
                             'qrcode_id': product.qrcode_id,
                             'name': product.name,
                             'email': product.email,
+                            'phone': product.phone,
                             'activation_date': product.activation_date.strftime(
                                 '%Y-%m-%d %H:%M:%S') if product.activation_date else None,
                             'warranty_start': product.warranty_start_date.strftime(
