@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import User, WechatProfile, ProductType, Product, OperationRecord, RepairRecord, AccessCode, Attachment
 from django.contrib.contenttypes.admin import GenericTabularInline
+from django import forms
 
 # 修改django管理的名字
 admin.site.site_header = '产品管理系统'
@@ -165,7 +166,6 @@ class OperationRecordAdmin(admin.ModelAdmin):
         return False  # 操作记录不允许删除
 
 
-from django import forms
 
 class AttachmentAdminForm(forms.ModelForm):
     upload_file = forms.FileField(required=False, label='上传文件')
@@ -186,7 +186,6 @@ class AttachmentInline(GenericTabularInline):
     
     def get_fields(self, request, obj=None):
         """根据是否是新建记录调整字段顺序"""
-        print(obj)
         if obj and obj.attachments:  # 如果是编辑已有记录且已有文件
             return ('name', 'file_url', 'upload_file', 'file_type', 'description')
         return ('name', 'upload_file', 'file_type', 'description')
@@ -233,6 +232,7 @@ class RepairRecordAdmin(admin.ModelAdmin):
                 if form.instance == instance and form.cleaned_data.get('upload_file'):
                     # 将上传的文件赋值给file_url，让模型的save方法处理上传到七牛
                     instance.file_url = form.cleaned_data['upload_file']
+
             instance.save()
         
         # 处理已删除的实例

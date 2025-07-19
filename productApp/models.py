@@ -229,7 +229,6 @@ class Attachment(models.Model):
         return f"{self.name} - {self.get_file_type_display()}"
 
     def save(self, *args, **kwargs):
-
         if hasattr(self.file_url, 'file'):  # 如果是文件对象
             file_obj = self.file_url
             # 生成新文件名
