@@ -669,4 +669,4 @@ onMounted(() => {
       </div>
     </div>
   </div>
-</template>[plugin:vite:import-analysis] Missing "./dist/cropper.css" specifier in "cropperjs" package
+</template>

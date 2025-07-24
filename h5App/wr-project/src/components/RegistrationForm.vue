@@ -32,7 +32,7 @@ function submitForm() {
           <span>{{ t.productIdLabel }}</span>
           <span class="text-primary ml-1">*</span>
         </label>
-        <input type="text" id="product-id" v-model="productId" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" readonly>
+        <input type="text" id="product-id" :value="productId" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" readonly>
       </div>
       
       <!-- Name -->
