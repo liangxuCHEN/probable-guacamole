@@ -20,8 +20,15 @@ const emit = defineEmits([
   'cropAndScan'
 ]);
 
-function handleFileUpload(event) {
-  emit('fileUpload', event);
+function handleFileUpload(file) {
+  // Vant的Uploader组件传递的是文件对象，而不是事件对象
+  // 创建一个模拟的事件对象，包含files属性
+  const mockEvent = {
+    target: {
+      files: [file.file]
+    }
+  };
+  emit('fileUpload', mockEvent);
 }
 
 function retakePhoto() {
@@ -42,78 +49,162 @@ function cropAndScan() {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl p-8 shadow-custom mb-10">
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-        <img src="https://qiniu.yayaxueqin.cn/icon/erweima-blue-3.svg" alt="qrcode icon" class="w-6 h-6">
+  <van-card class="qr-uploader-card">
+    <template #title>
+      <div class="uploader-header">
+        <van-icon name="qr" size="36" color="#1989fa" />
+        <h3 class="uploader-title">{{ t.uploadTitle }}</h3>
+        <p class="uploader-desc">{{ t.uploadDesc }}</p>
       </div>
-      <h3 class="text-xl font-semibold text-neutral-600 mb-2">
-        {{ t.uploadTitle }}
-      </h3>
-      <p class="text-neutral-400 max-w-md mx-auto">
-        {{ t.uploadDesc }}
-      </p>
-    </div>
+    </template>
+    
+    <template #price>
+      <!-- QR Code Upload Button -->
+      <div class="upload-button-container">
+        <van-uploader :after-read="handleFileUpload" accept="image/*">
+          <van-button type="primary" icon="photograph" round>
+            {{ t.uploadBtnText }}
+          </van-button>
+        </van-uploader>
+      </div>
 
-    <!-- QR Code Upload Button -->
-    <div class="flex justify-center">
-      <label for="qr-code-upload" class="cursor-pointer">
-        <div class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-8 rounded-full shadow-md flex items-center transition-custom hover:shadow-lg">
-          <img src="https://qiniu.yayaxueqin.cn/icon/xiangji.svg" alt="camera icon" class="w-5 h-5 mr-2">
-          <span>{{ t.uploadBtnText }}</span>
+      <!-- Processing Animation -->
+      <div v-if="showProcessingAnimation" class="processing-container">
+        <van-loading type="spinner" color="#1989fa" size="24px" />
+        <p class="processing-text">{{ t.processingText }}</p>
+      </div>
+
+      <!-- Upload Preview -->
+      <div v-if="showUploadPreview" class="preview-container">
+        <div class="preview-image-container">
+          <van-image :src="previewImageSrc" alt="Uploaded QR code" fit="contain" />
         </div>
-      </label>
-      <input id="qr-code-upload" type="file" accept="image/*" class="hidden" @change="handleFileUpload">
-    </div>
-
-    <!-- Processing Animation -->
-    <div v-if="showProcessingAnimation" class="mt-8 text-center">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-      <p class="text-neutral-500">{{ t.processingText }}</p>
-    </div>
-
-    <!-- Upload Preview -->
-    <div v-if="showUploadPreview" class="mt-8 text-center">
-      <div class="mb-4">
-        <img :src="previewImageSrc" alt="Uploaded QR code" class="max-w-full h-auto rounded-lg shadow-md mx-auto">
-      </div>
-      <div class="flex justify-center space-x-4">
-        <button @click="retakePhoto" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-medium py-2 px-6 rounded-full flex items-center transition-custom">
-          <img src="https://qiniu.yayaxueqin.cn/icon/redo-alt-solid.svg" alt="redo-alt icon" class="w-4 h-4 mr-1">
-          <span>{{ t.retakeBtnText }}</span>
-        </button>
-        <button @click="confirmUpload" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full flex items-center shadow-md transition-custom hover:shadow-lg">
-          <img src="https://qiniu.yayaxueqin.cn/icon/check-circle.svg" alt="check-circle icon" class="w-5 h-5 mr-1">
-          <span>{{ t.confirmBtnText }}</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Image Cropper Section -->
-    <div v-if="showCropperSection" class="mt-8">
-      <div class="text-center mb-4">
-        <h4 class="text-lg font-medium text-neutral-600 mb-2">
-          {{ t.cropperTitle }}
-        </h4>
-        <p class="text-neutral-400 max-w-md mx-auto mb-4">
-          {{ t.cropperDesc }}
-        </p>
-      </div>
-      <div class="mb-4 relative">
-        <div class="max-h-[70vh] overflow-hidden">
-          <img id="cropper-image" src="" alt="Image to crop" class="max-w-full mx-auto">
+        <div class="preview-buttons">
+          <van-button plain @click="retakePhoto" icon="replay">
+            {{ t.retakeBtnText }}
+          </van-button>
+          <van-button type="primary" @click="confirmUpload" icon="success">
+            {{ t.confirmBtnText }}
+          </van-button>
         </div>
       </div>
-      <div class="flex justify-center space-x-4">
-        <button @click="cancelCrop" class="bg-neutral-200 hover:bg-neutral-300 text-neutral-600 font-medium py-2 px-6 rounded-full flex items-center transition-custom">
-          <img src="https://qiniu.yayaxueqin.cn/icon/redo-alt-solid.svg" alt="cancel icon" class="w-4 h-4 mr-1">
-          <span>{{ t.cancelCropText }}</span>
-        </button>
-        <button @click="cropAndScan" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full flex items-center shadow-md transition-custom hover:shadow-lg">
-          <img src="https://qiniu.yayaxueqin.cn/icon/check-circle.svg" alt="crop icon" class="w-5 h-5 mr-1">
-          <span>{{ t.cropBtnText }}</span>
-        </button>
+
+      <!-- Image Cropper Section -->
+      <div v-if="showCropperSection" class="cropper-container">
+        <div class="cropper-header">
+          <h4 class="cropper-title">{{ t.cropperTitle }}</h4>
+          <p class="cropper-desc">{{ t.cropperDesc }}</p>
+        </div>
+        <div class="cropper-image-container">
+          <img id="cropper-image" src="" alt="Image to crop">
+        </div>
+        <div class="cropper-buttons">
+          <van-button plain @click="cancelCrop" icon="close">
+            {{ t.cancelCropText }}
+          </van-button>
+          <van-button type="primary" @click="cropAndScan" icon="success">
+            {{ t.cropBtnText }}
+          </van-button>
+        </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </van-card>
 </template>
+
+<style scoped>
+.qr-uploader-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.05);
+}
+
+.uploader-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.uploader-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #323233;
+  margin: 12px 0 8px;
+}
+
+.uploader-desc {
+  color: #969799;
+  text-align: center;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.upload-button-container {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.processing-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.processing-text {
+  margin-top: 12px;
+  color: #969799;
+}
+
+.preview-container {
+  margin-top: 20px;
+}
+
+.preview-image-container {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.cropper-container {
+  margin-top: 20px;
+}
+
+.cropper-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.cropper-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #323233;
+  margin-bottom: 8px;
+}
+
+.cropper-desc {
+  color: #969799;
+  margin-bottom: 16px;
+}
+
+.cropper-image-container {
+  max-height: 70vh;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.cropper-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+</style>

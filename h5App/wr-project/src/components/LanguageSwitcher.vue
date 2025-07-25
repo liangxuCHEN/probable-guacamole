@@ -16,20 +16,36 @@ function switchLanguage(lang) {
 </script>
 
 <template>
-  <div class="fixed top-4 right-4 z-50">
-    <div class="bg-white rounded-full shadow-lg p-1 flex">
-      <button 
-        :class="['px-3 py-1 rounded-full text-sm font-medium transition-custom', 
-                currentLang === 'en' ? 'text-primary bg-primary/10' : 'text-neutral-500']"
+  <div class="language-switcher">
+    <van-button-group class="lang-button-group">
+      <van-button 
+        :type="currentLang === 'en' ? 'primary' : 'default'" 
+        size="small"
         @click="switchLanguage('en')">
         EN
-      </button>
-      <button 
-        :class="['px-3 py-1 rounded-full text-sm font-medium transition-custom', 
-                currentLang === 'zh' ? 'text-primary bg-primary/10' : 'text-neutral-500']"
+      </van-button>
+      <van-button 
+        :type="currentLang === 'zh' ? 'primary' : 'default'" 
+        size="small"
         @click="switchLanguage('zh')">
         中文
-      </button>
-    </div>
+      </van-button>
+    </van-button-group>
   </div>
 </template>
+
+<style scoped>
+.language-switcher {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+}
+
+.lang-button-group {
+  background-color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+</style>

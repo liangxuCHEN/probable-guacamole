@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
+import { showToast, showNotify } from 'vant';
+import request from '../utils/request';
 import jsQR from 'jsqr';
 import '../assets/cropper.css';
 import Cropper from 'cropperjs';
@@ -157,9 +158,6 @@ const errors = ref({
   installer: false
 });
 const productInfo = ref(null);
-const toastMessage = ref('');
-const showToast = ref(false);
-const toastType = ref('success');
 const accessCode = ref('');
 const accessCodeValid = ref(true); // Set to false if access code validation is required
 let cropper = null;
@@ -329,7 +327,7 @@ function processImage(img) {
       const qrcodeId = code.data;
       
       // Send request to backend API
-      axios.post('/api/wr', { qrcode_id: qrcodeId })
+      request.post('/api/wr', { qrcode_id: qrcodeId })
         .then(response => {
           showProcessingAnimation.value = false;
           
@@ -436,7 +434,7 @@ function submitForm() {
     };
     
     // Send activation request
-    axios.post('/api/activate-product/', submitData)
+    request.post('/api/activate-product/', submitData)
       .then(response => {
         if (response.data.status === 'success') {
           showSuccessToast(t.value.toastMessage);
@@ -454,24 +452,21 @@ function submitForm() {
 
 // Show success toast
 function showSuccessToast(message) {
-  toastMessage.value = message;
-  toastType.value = 'success';
-  showToast.value = true;
-  
-  setTimeout(() => {
-    showToast.value = false;
-  }, 3000);
+  showToast({
+    message: message,
+    type: 'success',
+    position: 'bottom',
+    duration: 3000
+  });
 }
 
 // Show error toast
 function showErrorToast(message) {
-  toastMessage.value = message;
-  toastType.value = 'error';
-  showToast.value = true;
-  
-  setTimeout(() => {
-    showToast.value = false;
-  }, 3000);
+  showNotify({
+    message: message,
+    type: 'danger',
+    duration: 3000
+  });
 }
 
 // Restart process
@@ -530,7 +525,7 @@ onMounted(() => {
     showAccessCodeError.value = true;
   } else if (qrcodeId) {
     // If URL contains qrcode_id parameter, automatically query product info
-    axios.post('/api/wr', { qrcode_id: qrcodeId })
+    request.post('/api/wr', { qrcode_id: qrcodeId })
       .then(response => {
         if (response.data.status === 'success') {
           if (response.data.data.is_activated) {
@@ -559,24 +554,20 @@ onMounted(() => {
     />
 
     <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+    <div class="main-container">
       <!-- Header -->
-      <header class="text-center mb-10">
-        <h1 class="text-[clamp(1.8rem,5vw,2.5rem)] font-bold text-neutral-600 mb-2">
-          {{ t.title }}
-        </h1>
-        <p class="text-neutral-400 max-w-2xl mx-auto">
-          {{ t.subtitle }}
-        </p>
-      </header>
+      <div class="header-section">
+        <h1 class="title">{{ t.title }}</h1>
+        <p class="subtitle">{{ t.subtitle }}</p>
+      </div>
 
       <!-- Car Image Section -->
-      <div class="mb-10 relative overflow-hidden rounded-xl shadow-xl">
-        <img src="https://qiniu.notebay.cn/web/car-L-1.png-c" alt="Car product image" class="w-full h-auto object-cover transition-transform duration-700 hover:scale-105">
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-          <div class="p-6 text-white">
-            <h2 class="text-2xl font-bold mb-1">{{ t.carTitle }}</h2>
-            <p class="text-white/80">{{ t.carDesc }}</p>
+      <div class="car-image-section">
+        <van-image src="https://qiniu.notebay.cn/web/car-L-1.png-c" alt="Car product image" fit="cover" />
+        <div class="car-image-overlay">
+          <div class="car-image-text">
+            <h2 class="car-title">{{ t.carTitle }}</h2>
+            <p class="car-desc">{{ t.carDesc }}</p>
           </div>
         </div>
       </div>
@@ -616,57 +607,121 @@ onMounted(() => {
         :productInfo="productInfo"
         @restart="restart"
       />
-    </main>
+    </div>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-neutral-200 py-6">
-      <div class="container mx-auto px-4 text-center">
-        <p class="text-neutral-400 text-sm">
-          {{ t.footerText }}
-        </p>
-      </div>
+    <van-divider />
+    <footer class="footer">
+      <p class="footer-text">{{ t.footerText }}</p>
     </footer>
 
-    <!-- Success Toast -->
-    <div 
-      :class="[
-        'fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 flex items-center z-50',
-        showToast ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0',
-        toastType === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-      ]"
-    >
-      <img src="https://qiniu.yayaxueqin.cn/icon/check-circle.svg" alt="check-circle icon" class="w-5 h-5 mr-1">
-      <span>{{ toastMessage }}</span>
-    </div>
+    <!-- Toast 会由方法调用，不需要在模板中显示 -->
 
     <!-- Access Code Error Message -->
-    <div v-if="showAccessCodeError" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl p-8 shadow-lg max-w-md w-full mx-4">
-        <div class="text-center mb-6">
-          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-500 mb-4">
-            <img src="https://qiniu.yayaxueqin.cn/icon/fasfa-exclamation-triangle.svg" alt="error" class="w-8 h-8">
-          </div>
-          <h3 class="text-xl font-semibold text-neutral-600 mb-2">
-            {{ t.accessErrorTitle }}
-          </h3>
-          <p class="text-neutral-500">
-            {{ t.accessErrorMessage }}
-          </p>
-        </div>
-        <div class="space-y-4">
-          <div class="flex flex-col">
-            <label for="access-code-input" class="block text-sm font-medium text-neutral-500 mb-1">
-              <span>{{ t.accessCodeLabel }}</span>
-            </label>
-            <input type="text" id="access-code-input" v-model="accessCode" class="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-custom" :placeholder="t.accessCodePlaceholder">
-          </div>
-          <div class="flex justify-center">
-            <button @click="submitAccessCode" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full transition-custom">
-              <span>{{ t.submitAccessCodeText }}</span>
-            </button>
-          </div>
-        </div>
+    <van-dialog v-model:show="showAccessCodeError" title="访问被拒绝" :show-confirm-button="false">
+      <div class="access-error-content">
+        <van-icon name="warning-o" size="48" color="#ee0a24" />
+        <h3 class="access-error-title">{{ t.accessErrorTitle }}</h3>
+        <p class="access-error-message">{{ t.accessErrorMessage }}</p>
+        
+        <van-field
+          v-model="accessCode"
+          :label="t.accessCodeLabel"
+          :placeholder="t.accessCodePlaceholder"
+        />
+        
+        <van-button type="primary" block @click="submitAccessCode">
+          {{ t.submitAccessCodeText }}
+        </van-button>
       </div>
-    </div>
+    </van-dialog>
   </div>
 </template>
+
+<style scoped>
+.main-container {
+  padding: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.header-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+  font-weight: bold;
+  color: #323233;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #969799;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.car-image-section {
+  position: relative;
+  margin-bottom: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+}
+
+.car-image-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+  display: flex;
+  align-items: flex-end;
+}
+
+.car-image-text {
+  padding: 16px;
+  color: white;
+}
+
+.car-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.car-desc {
+  opacity: 0.8;
+}
+
+.footer {
+  padding: 16px;
+  text-align: center;
+}
+
+.footer-text {
+  color: #969799;
+  font-size: 14px;
+}
+
+.access-error-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.access-error-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #323233;
+}
+
+.access-error-message {
+  color: #969799;
+  text-align: center;
+}
+</style>
