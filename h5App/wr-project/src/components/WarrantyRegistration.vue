@@ -3,8 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { showToast, showNotify } from 'vant';
 import request from '../utils/request';
 import jsQR from 'jsqr';
-import '../assets/cropper.css';
-import Cropper from 'cropperjs';
+// 移除cropperjs导入
 import LanguageSwitcher from './LanguageSwitcher.vue';
 import QrCodeUploader from './QrCodeUploader.vue';
 import RegistrationForm from './RegistrationForm.vue';
@@ -142,7 +141,7 @@ const showNotActivated = ref(false);
 const showActivated = ref(false);
 const showProcessingAnimation = ref(false);
 const showUploadPreview = ref(false);
-const showCropperSection = ref(false);
+// 移除裁剪相关的状态变量
 const showAccessCodeError = ref(false);
 const previewImageSrc = ref('');
 const productId = ref('');
@@ -163,7 +162,7 @@ const errors = ref({
 const productInfo = ref(null);
 const accessCode = ref('');
 const accessCodeValid = ref(true); // Set to false if access code validation is required
-let cropper = null;
+// 移除裁剪器变量
 
 // Computed properties
 const t = computed(() => translations[currentLang.value]);
@@ -196,106 +195,23 @@ function retakePhoto() {
 // Confirm upload and process image
 function confirmUpload() {
   showUploadPreview.value = false;
+  showProcessingAnimation.value = true;
   
   const img = new Image();
   img.onload = function() {
-    const CROP_THRESHOLD = 3000;
-    
-    if (img.width > CROP_THRESHOLD || img.height > CROP_THRESHOLD) {
-      showCropperSection.value = true;
-      initCropper(img.src);
-    } else {
-      showProcessingAnimation.value = true;
-      processImage(img);
-    }
+    processImage(img);
   };
   
   img.onerror = function() {
     showErrorToast(t.value.imageLoadError);
     showUploadPreview.value = true;
+    showProcessingAnimation.value = false;
   };
   
   img.src = previewImageSrc.value;
 }
 
-// Initialize cropper
-function initCropper(src) {
-  setTimeout(() => {
-    const image = document.getElementById('cropper-image');
-    image.src = src;
-    
-    if (cropper) {
-      cropper.destroy();
-    }
-    
-    cropper = new Cropper(image, {
-      aspectRatio: NaN,
-      viewMode: 1,
-      guides: true,
-      highlight: true,
-      autoCropArea: 0.5,
-      dragMode: 'move',
-      responsive: true,
-      restore: false,
-      minContainerWidth: 300,
-      minContainerHeight: 300
-    });
-  }, 100);
-}
-
-// Cancel crop
-function cancelCrop() {
-  showCropperSection.value = false;
-  if (cropper) {
-    cropper.destroy();
-    cropper = null;
-  }
-  showUploadPreview.value = true;
-}
-
-// Crop and scan
-function cropAndScan() {
-  if (!cropper) return;
-  
-  showCropperSection.value = false;
-  showProcessingAnimation.value = true;
-  
-  const canvas = cropper.getCroppedCanvas({
-    maxWidth: 1000,
-    maxHeight: 1000,
-    fillColor: '#fff'
-  });
-  
-  if (!canvas) {
-    showProcessingAnimation.value = false;
-    showErrorToast(t.value.processingError);
-    showUploadPreview.value = true;
-    return;
-  }
-  
-  const croppedImg = new Image();
-  croppedImg.onload = function() {
-    processImage(croppedImg);
-    
-    if (cropper) {
-      cropper.destroy();
-      cropper = null;
-    }
-  };
-  
-  croppedImg.onerror = function() {
-    showProcessingAnimation.value = false;
-    showErrorToast(t.value.processingError);
-    showUploadPreview.value = true;
-    
-    if (cropper) {
-      cropper.destroy();
-      cropper = null;
-    }
-  };
-  
-  croppedImg.src = canvas.toDataURL('image/jpeg');
-}
+// 移除裁剪相关的函数
 
 // Process image and detect QR code
 function processImage(img) {
@@ -303,16 +219,12 @@ function processImage(img) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
+    // 调整图像大小以提高处理效率
     let width = img.width;
     let height = img.height;
-    const RESIZE_THRESHOLD = 400;
-    const MAX_SIZE = 300;
+    const MAX_SIZE = 800; // 增加最大尺寸以提高识别率
     
-    if (width > RESIZE_THRESHOLD || height > RESIZE_THRESHOLD) {
-      const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
-      width = Math.floor(width * ratio);
-      height = Math.floor(height * ratio);
-    } else if (width > MAX_SIZE || height > MAX_SIZE) {
+    if (width > MAX_SIZE || height > MAX_SIZE) {
       const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
       width = Math.floor(width * ratio);
       height = Math.floor(height * ratio);
@@ -324,7 +236,7 @@ function processImage(img) {
     
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: 'dontInvert',
+      inversionAttempts: 'attemptBoth', // 尝试正常和反转颜色，提高识别率
     });
     
     if (code) {
@@ -361,6 +273,7 @@ function processImage(img) {
           showUploadPreview.value = true;
         });
     } else {
+      // 二维码识别失败，直接报错
       showProcessingAnimation.value = false;
       showErrorToast(t.value.qrCodeNotDetected);
       showUploadPreview.value = true;
@@ -861,13 +774,10 @@ function processUrlParameters(urlId, qrcodeId) {
         :t="t"
         :showProcessingAnimation="showProcessingAnimation"
         :showUploadPreview="showUploadPreview"
-        :showCropperSection="showCropperSection"
         :previewImageSrc="previewImageSrc"
         @fileUpload="handleFileUpload"
         @retakePhoto="retakePhoto"
         @confirmUpload="confirmUpload"
-        @cancelCrop="cancelCrop"
-        @cropAndScan="cropAndScan"
       />
 
       <!-- Form Section -->

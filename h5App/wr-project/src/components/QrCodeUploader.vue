@@ -12,7 +12,6 @@ const props = defineProps({
   },
   showProcessingAnimation: Boolean,
   showUploadPreview: Boolean,
-  showCropperSection: Boolean,
   previewImageSrc: String
 });
 
@@ -28,9 +27,7 @@ updateLocalState();
 const emit = defineEmits([
   'fileUpload', 
   'retakePhoto', 
-  'confirmUpload', 
-  'cancelCrop', 
-  'cropAndScan'
+  'confirmUpload'
 ]);
 
 function handleFileUpload(file) {
@@ -63,13 +60,7 @@ function confirmUpload() {
   emit('confirmUpload');
 }
 
-function cancelCrop() {
-  emit('cancelCrop');
-}
-
-function cropAndScan() {
-  emit('cropAndScan');
-}
+// 移除裁剪相关的函数
 </script>
 
 <template>
@@ -108,22 +99,7 @@ function cropAndScan() {
       </div>
     </div>
 
-    <!-- Image Cropper Section -->
-    <div v-if="showCropperSection" class="cropper-container">
-      <h4 class="cropper-title">{{ t.cropperTitle }}</h4>
-      <p class="cropper-desc">{{ t.cropperDesc }}</p>
-      <div class="cropper-image-container">
-        <img id="cropper-image" src="" alt="Image to crop">
-      </div>
-      <div class="button-container">
-        <van-button plain @click="cancelCrop" icon="close">
-          {{ t.cancelCropText }}
-        </van-button>
-        <van-button type="primary" @click="cropAndScan" icon="success">
-          {{ t.cropBtnText }}
-        </van-button>
-      </div>
-    </div>
+    <!-- 移除裁剪相关的模板 -->
   </div>
 </template>
 
@@ -209,30 +185,5 @@ function cropAndScan() {
   overflow: hidden;
 }
 
-.cropper-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.cropper-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #323233;
-  margin-bottom: 8px;
-}
-
-.cropper-desc {
-  color: #969799;
-  margin-bottom: 16px;
-  text-align: center;
-}
-
-.cropper-image-container {
-  width: 100%;
-  max-height: 70vh;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
+/* 移除裁剪相关的样式 */
 </style>
