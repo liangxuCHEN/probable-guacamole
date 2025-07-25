@@ -35,6 +35,7 @@ def get_product_info(qrcode_id):
             return {
                 'status': 'success',
                 'message': '产品已激活',
+                'message_en': 'Product has been activated',
                 'data': {
                     'is_activated': True,
                     'product': {
@@ -58,6 +59,7 @@ def get_product_info(qrcode_id):
             return {
                 'status': 'success',
                 'message': '产品未激活',
+                'message_en': 'Product has not been activated',
                 'data': {
                     'is_activated': False,
                     'product': {
@@ -69,13 +71,15 @@ def get_product_info(qrcode_id):
         else:
             return {
                 'status': 'error',
+                'message_en': 'Product is not available',
                 'message': '产品状态异常，无法激活'
             }
 
     except Product.DoesNotExist:
         return {
             'status': 'error',
-            'message': '未找到该产品'
+            'message': '未找到该产品',
+            'message_en': 'Product not found'
         }
 
 @csrf_exempt
@@ -186,6 +190,7 @@ def activate_product(request):
                 return Response({
                     'status': 'success',
                     'message': '产品激活成功',
+                    'message_en': 'Product activated successfully',
                     'data': {
                         'qrcode_id': product.qrcode_id,
                         'name': product.name,
@@ -199,16 +204,19 @@ def activate_product(request):
                 })
             return Response({
                 'status': 'error',
-                'message': '产品无法激活'
+                'message': '产品无法激活',
+                'message_en': 'Product cannot be activated'
             }, status=status.HTTP_400_BAD_REQUEST)
         except Product.DoesNotExist:
             return Response({
                 'status': 'error',
-                'message': '未找到该产品'
+                'message': '未找到该产品',
+                'message_en': 'Product not found'
             }, status=status.HTTP_404_NOT_FOUND)
     return Response({
         'status': 'error',
         'message': '输入数据验证失败',
+        'message_en': 'Input data validation failed',
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 

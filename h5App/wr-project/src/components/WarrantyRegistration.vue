@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { showToast, showNotify } from 'vant';
 import request from '../utils/request';
 import jsQR from 'jsqr';
@@ -428,25 +428,27 @@ function submitForm() {
   }
   
   if (isValid) {
-    // 首先验证访问码
-    request.post('/api/code_api', { 
-      access_code: accessCode.value,
-      lang: currentLang.value
-    })
-    .then(response => {
-      if (response.data.status === 'success') {
-        // 访问码有效，继续提交表单
-        submitFormData();
-      } else {
-        // 访问码无效
-        accessCodeValid.value = false;
-        showErrorToast(t.value.invalidAccessCode);
-      }
-    })
-    .catch(error => {
-      showErrorToast(t.value.processingError);
-      console.error('Error validating access code:', error);
-    });
+// 首先验证访问码
+request.post('/api/code_api', { 
+  access_code: accessCode.value,
+  lang: currentLang.value
+})
+.then(response => {
+  if (response.data.status === 'success') {
+    // 访问码有效，继续提交表单
+    saveAccessCodeToLocalStorage(accessCode.value);
+    submitFormData();
+  } else {
+    // 访问码无效
+    accessCodeValid.value = false;
+    clearAccessCodeFromLocalStorage();
+    showErrorToast(t.value.invalidAccessCode);
+  }
+})
+.catch(error => {
+  showErrorToast(t.value.processingError);
+  console.error('Error validating access code:', error);
+});
   }
 }
 
@@ -535,12 +537,30 @@ function restart() {
   };
 }
 
+// 保存访问码到本地存储
+function saveAccessCodeToLocalStorage(code) {
+  localStorage.setItem('warranty_access_code', code);
+}
+
+// 从本地存储获取访问码
+function getAccessCodeFromLocalStorage() {
+  return localStorage.getItem('warranty_access_code');
+}
+
+// 清除本地存储中的访问码
+function clearAccessCodeFromLocalStorage() {
+  localStorage.removeItem('warranty_access_code');
+}
+
 // 处理访问码验证成功
 function handleAccessCodeValidated(validAccessCode) {
   // 保存有效的访问码
   accessCode.value = validAccessCode;
   accessCodeValid.value = true;
   showAccessCodeError.value = false;
+  
+  // 保存访问码到本地存储
+  saveAccessCodeToLocalStorage(validAccessCode);
   
   // 获取URL参数
   const urlParams = new URLSearchParams(window.location.search);
@@ -565,9 +585,10 @@ function handleAccessCodeValidated(validAccessCode) {
           showNotActivatedResultWithData(response.data.data.product);
         }
       } else {
-        // 如果访问码无效，重置状态
+        // 如果访问码无效，重置状态并清除本地存储
         if (response.data.message === '无效的访问码') {
           accessCodeValid.value = false;
+          clearAccessCodeFromLocalStorage();
         }
         showErrorToast(response.data.message || t.value.processingError);
       }
@@ -595,9 +616,10 @@ function handleAccessCodeValidated(validAccessCode) {
           showNotActivatedResultWithData(response.data.data.product);
         }
       } else {
-        // 如果访问码无效，重置状态
+        // 如果访问码无效，重置状态并清除本地存储
         if (response.data.message === '无效的访问码') {
           accessCodeValid.value = false;
+          clearAccessCodeFromLocalStorage();
         }
         showErrorToast(response.data.message || t.value.processingError);
       }
@@ -617,39 +639,59 @@ onMounted(() => {
   const urlAccessCode = urlParams.get('access_code');
   const urlId = urlParams.get('id');
   
-  // 设置访问码
+  // 首先检查URL中是否有访问码
   if (urlAccessCode) {
     // 如果URL中有访问码，需要立即验证其有效性
     accessCode.value = urlAccessCode;
     
     // 验证访问码
-    request.post('/api/code_api', { 
-      access_code: urlAccessCode,
-      lang: currentLang.value
-    })
-    .then(response => {
-      if (response.data.status === 'success') {
-        // 访问码有效
-        accessCodeValid.value = true;
-        
-        // 继续处理URL参数
-        processUrlParameters(urlId, qrcodeId);
-      } else {
-        // 访问码无效
-        accessCodeValid.value = false;
-        showErrorToast(t.value.invalidAccessCode);
-      }
-    })
-    .catch(error => {
-      accessCodeValid.value = false;
-      showErrorToast(t.value.processingError);
-      console.error('Error validating access code:', error);
-    });
+    validateAccessCode(urlAccessCode, urlId, qrcodeId);
   } else {
-    // 如果没有访问码，显示访问码输入界面
-    accessCodeValid.value = false;
+    // 如果URL中没有访问码，检查本地存储中是否有保存的访问码
+    const savedAccessCode = getAccessCodeFromLocalStorage();
+    
+    if (savedAccessCode) {
+      // 如果本地存储中有访问码，使用它
+      accessCode.value = savedAccessCode;
+      
+      // 验证保存的访问码
+      validateAccessCode(savedAccessCode, urlId, qrcodeId);
+    } else {
+      // 如果没有访问码，显示访问码输入界面
+      accessCodeValid.value = false;
+    }
   }
 });
+
+// 验证访问码
+function validateAccessCode(code, urlId, qrcodeId) {
+  request.post('/api/code_api', { 
+    access_code: code,
+    lang: currentLang.value
+  })
+  .then(response => {
+    if (response.data.status === 'success') {
+      // 访问码有效
+      accessCodeValid.value = true;
+      
+      // 保存到本地存储
+      saveAccessCodeToLocalStorage(code);
+      
+      // 继续处理URL参数
+      processUrlParameters(urlId, qrcodeId);
+    } else {
+      // 访问码无效
+      accessCodeValid.value = false;
+      clearAccessCodeFromLocalStorage();
+      showErrorToast(t.value.invalidAccessCode);
+    }
+  })
+  .catch(error => {
+    accessCodeValid.value = false;
+    showErrorToast(t.value.processingError);
+    console.error('Error validating access code:', error);
+  });
+}
 
 // 处理URL参数
 function processUrlParameters(urlId, qrcodeId) {
