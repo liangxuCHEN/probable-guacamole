@@ -123,9 +123,9 @@ def warranty_registration_api(request):
     try:
         access_code = AccessCode.objects.get(code=access_code)
         if not access_code.is_active:
-            return Response({'status': 'error', 'message': '无效的访问码'})
+            return Response({'status': 'error', 'message': '无效的访问码', 'message_en': 'Invalid access code'})
     except AccessCode.DoesNotExist:
-        return Response({'status': 'error', 'message': '无效的访问码'})
+        return Response({'status': 'error', 'message': '无效的访问码', 'message_en': 'Invalid access code'})
 
     if "http" in qrcode_id:
         # 如果是URL则提取qrcode_id参数值
@@ -146,9 +146,9 @@ def check_code_api(request):
         access_code = AccessCode.objects.get(code=access_code)
         if access_code.is_active:
             return Response({'status': 'success'})
-        return Response({'status': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'error', 'message': '无效的访问码', 'message_en': 'Invalid access code'})
     except AccessCode.DoesNotExist:
-        return Response({'status': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'error', 'message': '无效的访问码', 'message_en': 'Invalid access code'})
 
 
 
