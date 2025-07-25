@@ -327,7 +327,10 @@ function processImage(img) {
       const qrcodeId = code.data;
       
       // Send request to backend API
-      request.post('/api/wr', { qrcode_id: qrcodeId })
+      request.post('/api/wr', { 
+        qrcode_id: qrcodeId,
+        access_code: accessCode.value
+      })
         .then(response => {
           showProcessingAnimation.value = false;
           
@@ -422,7 +425,7 @@ function submitForm() {
   }
   
   if (isValid) {
-    // Prepare form data
+    // 准备表单数据
     const submitData = {
       qrcode_id: productId.value,
       name: formData.value.name.trim(),
@@ -430,7 +433,8 @@ function submitForm() {
       phone: formData.value.phone.trim(),
       city: formData.value.city.trim(),
       country: formData.value.country.trim(),
-      installer: formData.value.installer.trim()
+      installer: formData.value.installer.trim(),
+      access_code: accessCode.value // 添加访问码
     };
     
     // Send activation request
@@ -498,35 +502,29 @@ function restart() {
   };
 }
 
-// Submit access code
+// 提交访问码
 function submitAccessCode() {
   if (accessCode.value.trim()) {
-    // In a real app, you would validate the access code with the server
-    // For now, we'll just simulate a successful validation
+    // 设置访问码有效
     accessCodeValid.value = true;
     showAccessCodeError.value = false;
-  }
-}
-
-// Check for initial QR code ID in URL
-onMounted(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const qrcodeId = urlParams.get('qrcode_id');
-  const urlAccessCode = urlParams.get('access_code');
-  
-  if (urlAccessCode) {
-    accessCode.value = urlAccessCode;
-    // In a real app, you would validate the access code with the server
-    // For now, we'll just simulate a successful validation
-    accessCodeValid.value = true;
-  }
-  
-  if (!accessCodeValid.value) {
-    showAccessCodeError.value = true;
-  } else if (qrcodeId) {
-    // If URL contains qrcode_id parameter, automatically query product info
-    request.post('/api/wr', { qrcode_id: qrcodeId })
+    
+    // 获取URL参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlId = urlParams.get('id');
+    const qrcodeId = urlParams.get('qrcode_id');
+    
+    // 如果有id参数，直接请求qr/wr接口
+    if (urlId) {
+      showProcessingAnimation.value = true;
+      
+      request.post('/api/wr', { 
+        qrcode_id: urlId,
+        access_code: accessCode.value
+      })
       .then(response => {
+        showProcessingAnimation.value = false;
+        
         if (response.data.status === 'success') {
           if (response.data.data.is_activated) {
             showActivatedResultWithData(response.data.data.product);
@@ -538,9 +536,114 @@ onMounted(() => {
         }
       })
       .catch(error => {
+        showProcessingAnimation.value = false;
         showErrorToast(t.value.processingError);
         console.error('Error:', error);
       });
+    } else if (qrcodeId) {
+      // 如果有qrcode_id参数，也请求qr/wr接口
+      showProcessingAnimation.value = true;
+      
+      request.post('/api/wr', { 
+        qrcode_id: qrcodeId,
+        access_code: accessCode.value
+      })
+      .then(response => {
+        showProcessingAnimation.value = false;
+        
+        if (response.data.status === 'success') {
+          if (response.data.data.is_activated) {
+            showActivatedResultWithData(response.data.data.product);
+          } else {
+            showNotActivatedResultWithData(response.data.data.product);
+          }
+        } else {
+          showErrorToast(response.data.message || t.value.processingError);
+        }
+      })
+      .catch(error => {
+        showProcessingAnimation.value = false;
+        showErrorToast(t.value.processingError);
+        console.error('Error:', error);
+      });
+    }
+  } else {
+    // 如果用户没有输入访问码，显示错误提示
+    showErrorToast(t.value.accessErrorMessage);
+  }
+}
+
+// 检查URL中的参数并处理
+onMounted(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const qrcodeId = urlParams.get('qrcode_id');
+  const urlAccessCode = urlParams.get('access_code');
+  const urlId = urlParams.get('id');
+  
+  // 设置访问码
+  if (urlAccessCode) {
+    accessCode.value = urlAccessCode;
+    accessCodeValid.value = true;
+  } else {
+    // 如果没有访问码，显示访问码输入对话框
+    accessCodeValid.value = false;
+    showAccessCodeError.value = true;
+    return; // 停止后续处理，等待用户输入访问码
+  }
+  
+  // 如果有id参数，直接请求qr/wr接口
+  if (urlId) {
+    showProcessingAnimation.value = true;
+    
+    // 发送请求到qr/wr接口，带上access_code和id参数
+    request.post('/api/wr', { 
+      qrcode_id: urlId,
+      access_code: accessCode.value
+    })
+    .then(response => {
+      showProcessingAnimation.value = false;
+      
+      if (response.data.status === 'success') {
+        if (response.data.data.is_activated) {
+          showActivatedResultWithData(response.data.data.product);
+        } else {
+          showNotActivatedResultWithData(response.data.data.product);
+        }
+      } else {
+        showErrorToast(response.data.message || t.value.processingError);
+      }
+    })
+    .catch(error => {
+      showProcessingAnimation.value = false;
+      showErrorToast(t.value.processingError);
+      console.error('Error:', error);
+    });
+  } else if (qrcodeId) {
+    // 如果有qrcode_id参数，也请求qr/wr接口
+    showProcessingAnimation.value = true;
+    
+    request.post('/api/wr', { 
+      qrcode_id: qrcodeId,
+      access_code: accessCode.value
+    })
+    .then(response => {
+      showProcessingAnimation.value = false;
+      
+      if (response.data.status === 'success') {
+        if (response.data.data.is_activated) {
+          showActivatedResultWithData(response.data.data.product);
+        } else {
+          showNotActivatedResultWithData(response.data.data.product);
+        }
+      } else {
+        showErrorToast(response.data.message || t.value.processingError);
+      }
+    })
+    .catch(error => {
+      showProcessingAnimation.value = false;
+      showErrorToast(t.value.processingError);
+      console.error('Error:', error);
+    });
   }
 });
 </script>
