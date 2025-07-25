@@ -40,24 +40,24 @@ function restart() {
       <div v-if="showActivated" class="product-info-section">
         <van-cell-group inset>
           <!-- Product ID -->
-          <van-cell :title="t.resultProductIdLabel" :value="productInfo?.qrcode_id" />
+          <van-cell :title="t.resultProductIdLabel" :label="productInfo?.qrcode_id" />
           
           <!-- Name -->
-          <van-cell :title="t.resultNameLabel" :value="productInfo?.name" />
+          <van-cell :title="t.resultNameLabel" :label="productInfo?.name" />
           
           <!-- Email -->
-          <van-cell :title="t.resultEmailLabel" :value="productInfo?.email" />
+          <van-cell :title="t.resultEmailLabel" :label="productInfo?.email" />
           
           <!-- Phone -->
-          <van-cell :title="t.resultPhoneLabel" :value="productInfo?.phone || '-'" />
+          <van-cell :title="t.resultPhoneLabel" :label="productInfo?.phone || '-'" />
           
           <!-- Installer -->
-          <van-cell :title="t.resultInstallerLabel" :value="productInfo?.installer || '-'" />
+          <van-cell :title="t.resultInstallerLabel" :label="productInfo?.installer || '-'" />
           
           <!-- Activation Date -->
           <van-cell 
             :title="t.resultActivationLabel" 
-            :value="productInfo?.activation_date ? new Date(productInfo.activation_date).toISOString().split('T')[0] : '-'" 
+            :label="productInfo?.activation_date ? new Date(productInfo.activation_date).toISOString().split('T')[0] : '-'"
           />
         </van-cell-group>
         
@@ -145,5 +145,26 @@ function restart() {
   margin-top: 16px;
   display: flex;
   justify-content: center;
+}
+
+/* 修改van-cell的label样式 */
+:deep(.van-cell__label) {
+  margin-top: 8px;
+  color: #323233;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-all;
+  text-align: left;
+}
+
+/* 增加标题和内容的间距 */
+:deep(.van-cell__title) {
+  margin-bottom: 4px;
+}
+
+/* 确保单元格有足够的高度 */
+:deep(.van-cell) {
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 </style>
