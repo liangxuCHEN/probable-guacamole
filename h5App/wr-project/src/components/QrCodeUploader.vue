@@ -144,7 +144,16 @@ function cropAndScan() {
 .upload-button-container {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin: 16px 0;
+  width: 100%;
+  text-align: center;
+}
+
+.upload-button-container :deep(.van-uploader) {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .processing-container {
@@ -172,7 +181,10 @@ function cropAndScan() {
 .preview-buttons {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
+  width: 100%;
+  text-align: center;
 }
 
 .cropper-container {
@@ -205,6 +217,9 @@ function cropAndScan() {
 .cropper-buttons {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
+  width: 100%;
+  text-align: center;
 }
 </style>
