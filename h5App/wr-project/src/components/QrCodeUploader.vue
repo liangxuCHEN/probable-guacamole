@@ -145,7 +145,7 @@ function cropAndScan() {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 16px 0;
+  margin: 16px auto;
   width: 100%;
   text-align: center;
 }
@@ -154,6 +154,16 @@ function cropAndScan() {
   display: flex;
   justify-content: center;
   width: 100%;
+}
+
+.upload-button-container :deep(.van-uploader__wrapper) {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.upload-button-container :deep(.van-button) {
+  margin: 0 auto;
 }
 
 .processing-container {

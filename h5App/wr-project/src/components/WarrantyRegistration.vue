@@ -9,6 +9,7 @@ import LanguageSwitcher from './LanguageSwitcher.vue';
 import QrCodeUploader from './QrCodeUploader.vue';
 import RegistrationForm from './RegistrationForm.vue';
 import ProductResult from './ProductResult.vue';
+import AccessCodeInput from './AccessCodeInput.vue';
 
 // Language data
 const translations = {
@@ -427,41 +428,63 @@ function submitForm() {
   }
   
   if (isValid) {
-    // 准备表单数据
-    const submitData = {
-      qrcode_id: productId.value,
-      name: formData.value.name.trim(),
-      email: formData.value.email.trim(),
-      phone: formData.value.phone.trim(),
-      city: formData.value.city.trim(),
-      country: formData.value.country.trim(),
-      installer: formData.value.installer.trim(),
-      access_code: accessCode.value // 添加访问码
-    };
-    
-    // Send activation request
-    request.post('/api/activate-product/', submitData)
-      .then(response => {
-        if (response.data.status === 'success') {
-          showSuccessToast(t.value.toastMessage);
-          showActivatedResultWithData(response.data.data);
-        } else {
-          // 处理错误响应
-          if (response.data.message === '无效的访问码') {
-            // 如果是访问码无效，显示访问码输入对话框
-            accessCodeValid.value = false;
-            showAccessCodeError.value = true;
-            showErrorToast(t.value.invalidAccessCode);
-          } else {
-            showErrorToast(response.data.message || t.value.processingError);
-          }
-        }
-      })
-      .catch(error => {
-        showErrorToast(t.value.processingError);
-        console.error('Error:', error);
-      });
+    // 首先验证访问码
+    request.post('/api/code_api', { 
+      access_code: accessCode.value,
+      lang: currentLang.value
+    })
+    .then(response => {
+      if (response.data.status === 'success') {
+        // 访问码有效，继续提交表单
+        submitFormData();
+      } else {
+        // 访问码无效
+        accessCodeValid.value = false;
+        showErrorToast(t.value.invalidAccessCode);
+      }
+    })
+    .catch(error => {
+      showErrorToast(t.value.processingError);
+      console.error('Error validating access code:', error);
+    });
   }
+}
+
+// 提交表单数据
+function submitFormData() {
+  // 准备表单数据
+  const submitData = {
+    qrcode_id: productId.value,
+    name: formData.value.name.trim(),
+    email: formData.value.email.trim(),
+    phone: formData.value.phone.trim(),
+    city: formData.value.city.trim(),
+    country: formData.value.country.trim(),
+    installer: formData.value.installer.trim(),
+    access_code: accessCode.value // 添加访问码
+  };
+  
+  // Send activation request
+  request.post('/api/activate-product/', submitData)
+    .then(response => {
+      if (response.data.status === 'success') {
+        showSuccessToast(t.value.toastMessage);
+        showActivatedResultWithData(response.data.data);
+      } else {
+        // 处理错误响应
+        if (response.data.message === '无效的访问码') {
+          // 如果是访问码无效，重置状态
+          accessCodeValid.value = false;
+          showErrorToast(t.value.invalidAccessCode);
+        } else {
+          showErrorToast(response.data.message || t.value.processingError);
+        }
+      }
+    })
+    .catch(error => {
+      showErrorToast(t.value.processingError);
+      console.error('Error:', error);
+    });
 }
 
 // Show success toast
@@ -512,101 +535,23 @@ function restart() {
   };
 }
 
-// 提交访问码
-function submitAccessCode() {
-  if (accessCode.value.trim()) {
-    // 设置访问码有效
-    accessCodeValid.value = true;
-    showAccessCodeError.value = false;
-    
-    // 获取URL参数
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlId = urlParams.get('id');
-    const qrcodeId = urlParams.get('qrcode_id');
-    
-    // 如果有id参数，直接请求api/wr_api接口
-    if (urlId) {
-      showProcessingAnimation.value = true;
-      
-      request.post('/api/wr_api', {
-        qrcode_id: urlId,
-        access_code: accessCode.value
-      })
-      .then(response => {
-        showProcessingAnimation.value = false;
-        
-        if (response.data.status === 'success') {
-          if (response.data.data.is_activated) {
-            showActivatedResultWithData(response.data.data.product);
-          } else {
-            showNotActivatedResultWithData(response.data.data.product);
-          }
-        } else {
-          showErrorToast(response.data.message || t.value.processingError);
-        }
-      })
-      .catch(error => {
-        showProcessingAnimation.value = false;
-        showErrorToast(t.value.processingError);
-        console.error('Error:', error);
-      });
-    } else if (qrcodeId) {
-      // 如果有qrcode_id参数，也请求api/wr_api接口
-      showProcessingAnimation.value = true;
-      
-      request.post('/api/wr_api', { 
-        qrcode_id: qrcodeId,
-        access_code: accessCode.value
-      })
-      .then(response => {
-        showProcessingAnimation.value = false;
-        
-        if (response.data.status === 'success') {
-          if (response.data.data.is_activated) {
-            showActivatedResultWithData(response.data.data.product);
-          } else {
-            showNotActivatedResultWithData(response.data.data.product);
-          }
-        } else {
-          showErrorToast(response.data.message || t.value.processingError);
-        }
-      })
-      .catch(error => {
-        showProcessingAnimation.value = false;
-        showErrorToast(t.value.processingError);
-        console.error('Error:', error);
-      });
-    }
-  } else {
-    // 如果用户没有输入访问码，显示错误提示
-    showErrorToast(t.value.accessErrorMessage);
-  }
-}
-
-// 检查URL中的参数并处理
-onMounted(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const qrcodeId = urlParams.get('qrcode_id');
-  const urlAccessCode = urlParams.get('access_code');
-  const urlId = urlParams.get('id');
+// 处理访问码验证成功
+function handleAccessCodeValidated(validAccessCode) {
+  // 保存有效的访问码
+  accessCode.value = validAccessCode;
+  accessCodeValid.value = true;
+  showAccessCodeError.value = false;
   
-  // 设置访问码
-  if (urlAccessCode) {
-    accessCode.value = urlAccessCode;
-    accessCodeValid.value = true;
-  } else {
-    // 如果没有访问码，显示访问码输入对话框
-    accessCodeValid.value = false;
-    showAccessCodeError.value = true;
-    return; // 停止后续处理，等待用户输入访问码
-  }
+  // 获取URL参数
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlId = urlParams.get('id');
+  const qrcodeId = urlParams.get('qrcode_id');
   
   // 如果有id参数，直接请求api/wr_api接口
   if (urlId) {
     showProcessingAnimation.value = true;
     
-    // 发送请求到api/wr_api接口，带上access_code和id参数
-    request.post('/api/wr_api', { 
+    request.post('/api/wr_api', {
       qrcode_id: urlId,
       access_code: accessCode.value
     })
@@ -620,6 +565,10 @@ onMounted(() => {
           showNotActivatedResultWithData(response.data.data.product);
         }
       } else {
+        // 如果访问码无效，重置状态
+        if (response.data.message === '无效的访问码') {
+          accessCodeValid.value = false;
+        }
         showErrorToast(response.data.message || t.value.processingError);
       }
     })
@@ -646,6 +595,10 @@ onMounted(() => {
           showNotActivatedResultWithData(response.data.data.product);
         }
       } else {
+        // 如果访问码无效，重置状态
+        if (response.data.message === '无效的访问码') {
+          accessCodeValid.value = false;
+        }
         showErrorToast(response.data.message || t.value.processingError);
       }
     })
@@ -655,7 +608,114 @@ onMounted(() => {
       console.error('Error:', error);
     });
   }
+}
+
+// 检查URL中的参数并处理
+onMounted(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const qrcodeId = urlParams.get('qrcode_id');
+  const urlAccessCode = urlParams.get('access_code');
+  const urlId = urlParams.get('id');
+  
+  // 设置访问码
+  if (urlAccessCode) {
+    // 如果URL中有访问码，需要立即验证其有效性
+    accessCode.value = urlAccessCode;
+    
+    // 验证访问码
+    request.post('/api/code_api', { 
+      access_code: urlAccessCode,
+      lang: currentLang.value
+    })
+    .then(response => {
+      if (response.data.status === 'success') {
+        // 访问码有效
+        accessCodeValid.value = true;
+        
+        // 继续处理URL参数
+        processUrlParameters(urlId, qrcodeId);
+      } else {
+        // 访问码无效
+        accessCodeValid.value = false;
+        showErrorToast(t.value.invalidAccessCode);
+      }
+    })
+    .catch(error => {
+      accessCodeValid.value = false;
+      showErrorToast(t.value.processingError);
+      console.error('Error validating access code:', error);
+    });
+  } else {
+    // 如果没有访问码，显示访问码输入界面
+    accessCodeValid.value = false;
+  }
 });
+
+// 处理URL参数
+function processUrlParameters(urlId, qrcodeId) {
+  // 如果有id参数，直接请求api/wr_api接口
+  if (urlId) {
+    showProcessingAnimation.value = true;
+    
+    // 发送请求到api/wr_api接口，带上access_code和id参数
+    request.post('/api/wr_api', { 
+      qrcode_id: urlId,
+      access_code: accessCode.value
+    })
+    .then(response => {
+      showProcessingAnimation.value = false;
+      
+      if (response.data.status === 'success') {
+        if (response.data.data.is_activated) {
+          showActivatedResultWithData(response.data.data.product);
+        } else {
+          showNotActivatedResultWithData(response.data.data.product);
+        }
+      } else {
+        // 如果访问码无效，重置状态
+        if (response.data.message === '无效的访问码') {
+          accessCodeValid.value = false;
+        }
+        showErrorToast(response.data.message || t.value.processingError);
+      }
+    })
+    .catch(error => {
+      showProcessingAnimation.value = false;
+      showErrorToast(t.value.processingError);
+      console.error('Error:', error);
+    });
+  } else if (qrcodeId) {
+    // 如果有qrcode_id参数，也请求api/wr_api接口
+    showProcessingAnimation.value = true;
+    
+    request.post('/api/wr_api', { 
+      qrcode_id: qrcodeId,
+      access_code: accessCode.value
+    })
+    .then(response => {
+      showProcessingAnimation.value = false;
+      
+      if (response.data.status === 'success') {
+        if (response.data.data.is_activated) {
+          showActivatedResultWithData(response.data.data.product);
+        } else {
+          showNotActivatedResultWithData(response.data.data.product);
+        }
+      } else {
+        // 如果访问码无效，重置状态
+        if (response.data.message === '无效的访问码') {
+          accessCodeValid.value = false;
+        }
+        showErrorToast(response.data.message || t.value.processingError);
+      }
+    })
+    .catch(error => {
+      showProcessingAnimation.value = false;
+      showErrorToast(t.value.processingError);
+      console.error('Error:', error);
+    });
+  }
+}
 </script>
 
 <template>
@@ -685,9 +745,17 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Access Code Input Section -->
+      <AccessCodeInput
+        v-if="!accessCodeValid"
+        :t="t"
+        :currentLang="currentLang"
+        @accessCodeValidated="handleAccessCodeValidated"
+      />
+
       <!-- QR Code Upload Section -->
       <QrCodeUploader 
-        v-if="showUploadSection"
+        v-if="showUploadSection && accessCodeValid"
         :t="t"
         :showProcessingAnimation="showProcessingAnimation"
         :showUploadPreview="showUploadPreview"
@@ -730,24 +798,7 @@ onMounted(() => {
 
     <!-- Toast 会由方法调用，不需要在模板中显示 -->
 
-    <!-- Access Code Error Message -->
-    <van-dialog v-model:show="showAccessCodeError" title="访问被拒绝" :show-confirm-button="false">
-      <div class="access-error-content">
-        <van-icon name="warning-o" size="48" color="#ee0a24" />
-        <h3 class="access-error-title">{{ t.accessErrorTitle }}</h3>
-        <p class="access-error-message">{{ t.accessErrorMessage }}</p>
-        
-        <van-field
-          v-model="accessCode"
-          :label="t.accessCodeLabel"
-          :placeholder="t.accessCodePlaceholder"
-        />
-        
-        <van-button type="primary" block @click="submitAccessCode">
-          {{ t.submitAccessCodeText }}
-        </van-button>
-      </div>
-    </van-dialog>
+    <!-- 不再需要单独的访问码对话框，因为我们现在使用了AccessCodeInput组件 -->
   </div>
 </template>
 

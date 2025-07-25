@@ -26,6 +26,7 @@ urlpatterns = [
     path('auth/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('wr', views.warranty_registration, name='warranty'),
     path('wr_api', views.warranty_registration_api, name='warranty_api'),
+    path('code_api', views.check_code_api, name='check_code_api'),
     path('activate-product/', views.activate_product, name='activate_product'),
     # API 路由
     path('', include(router.urls)),

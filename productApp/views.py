@@ -140,6 +140,21 @@ def warranty_registration_api(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def check_code_api(request):
+    access_code = request.data.get('access_code')
+    try:
+        access_code = AccessCode.objects.get(code=access_code)
+        if access_code.is_active:
+            return Response({'status': 'success'})
+        return Response({'status': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+    except AccessCode.DoesNotExist:
+        return Response({'status': 'error'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def activate_product(request):
     """产品激活API"""
     serializer = ProductActivationSerializer(data=request.data)
