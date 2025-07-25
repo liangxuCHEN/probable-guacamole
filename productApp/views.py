@@ -25,64 +25,65 @@ from .serializers import (
 from django.contrib.contenttypes.models import ContentType
 
 
+def get_product_info(qrcode_id):
+    """获取产品信息"""
+    # 查询产品信息
+    try:
+        product = Product.objects.get(qrcode_id=qrcode_id)
+        # 检查产品状态
+        if product.status == 3:  # 已激活
+            return {
+                'status': 'success',
+                'message': '产品已激活',
+                'data': {
+                    'is_activated': True,
+                    'product': {
+                        'qrcode_id': product.qrcode_id,
+                        'name': product.name,
+                        'email': product.email,
+                        'phone': product.phone,
+                        'activation_date': product.activation_date.strftime(
+                            '%Y-%m-%d %H:%M:%S') if product.activation_date else None,
+                        'warranty_start': product.warranty_start_date.strftime(
+                            '%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
+                        'warranty_end': product.warranty_end_date.strftime(
+                            '%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
+                        'under_warranty': product.is_under_warranty(),
+                        'status': product.get_status_display(),
+                        'installer': product.installer
+                    }
+                }
+            }
+        elif product.status == 2:  # 已出货，可以激活
+            return {
+                'status': 'success',
+                'message': '产品未激活',
+                'data': {
+                    'is_activated': False,
+                    'product': {
+                        'qrcode_id': product.qrcode_id,
+                        'product_type': product.product_type.name if product.product_type else None
+                    }
+                }
+            }
+        else:
+            return {
+                'status': 'error',
+                'message': '产品状态异常，无法激活'
+            }
+
+    except Product.DoesNotExist:
+        return {
+            'status': 'error',
+            'message': '未找到该产品'
+        }
+
 @csrf_exempt
 @api_view(['GET', 'POST'])
 @authentication_classes([])  # 禁用JWT认证
 @permission_classes([AllowAny])
 def warranty_registration(request):
     """产品保修登记-表单"""
-    def get_product_info(qrcode_id):
-        """获取产品信息"""
-        # 查询产品信息
-        try:
-            product = Product.objects.get(qrcode_id=qrcode_id)
-            # 检查产品状态
-            if product.status == 3:  # 已激活
-                return {
-                    'status': 'success',
-                    'message': '产品已激活',
-                    'data': {
-                        'is_activated': True,
-                        'product': {
-                            'qrcode_id': product.qrcode_id,
-                            'name': product.name,
-                            'email': product.email,
-                            'phone': product.phone,
-                            'activation_date': product.activation_date.strftime(
-                                '%Y-%m-%d %H:%M:%S') if product.activation_date else None,
-                            'warranty_start': product.warranty_start_date.strftime(
-                                '%Y-%m-%d %H:%M:%S') if product.warranty_start_date else None,
-                            'warranty_end': product.warranty_end_date.strftime(
-                                '%Y-%m-%d %H:%M:%S') if product.warranty_end_date else None,
-                            'under_warranty': product.is_under_warranty(),
-                            'status': product.get_status_display(),
-                            'installer': product.installer
-                        }
-                    }
-                }
-            elif product.status == 2:  # 已出货，可以激活
-                return {
-                    'status': 'success',
-                    'message': '产品未激活',
-                    'data': {
-                        'is_activated': False,
-                        'product': {
-                            'qrcode_id': product.qrcode_id,
-                            'product_type': product.product_type.name if product.product_type else None
-                        }
-                    }
-                }
-            else:
-                return {
-                    'status': 'error',
-                    'message': '产品状态异常，无法激活'
-                }
-
-        except Product.DoesNotExist:
-            return {
-                'status': 'error',
-                'message': '未找到该产品'
-            }
 
     if request.method == 'GET':
         # GET请求，需要增加一层校验，防止直接访问，url带access_code参数，然后查询AccessCode模型，检验access_code是否有效
@@ -113,6 +114,28 @@ def warranty_registration(request):
         else:
             return JsonResponse(response, status=400)
 
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def warranty_registration_api(request):
+    qrcode_id = request.data.get('qrcode_id')
+    access_code = request.data.get('access_code')
+    try:
+        access_code = AccessCode.objects.get(code=access_code)
+        if not access_code.is_active:
+            return Response({'status': 'error', 'message': '无效的访问码'})
+    except AccessCode.DoesNotExist:
+        return Response({'status': 'error', 'message': '无效的访问码'})
+
+    if "http" in qrcode_id:
+        # 如果是URL则提取qrcode_id参数值
+        qrcode_id = qrcode_id.split('/')[-1].split('=')[-1]
+
+    response = get_product_info(qrcode_id)
+    if response['status'] == 'success':
+        return JsonResponse(response)
+    else:
+        return JsonResponse(response, status=400)
 
 
 @api_view(['POST'])

@@ -61,6 +61,7 @@ const translations = {
     cancelCropText: "Cancel",
     accessErrorTitle: "Access Denied",
     accessErrorMessage: "You need a valid access code to view this page.",
+    invalidAccessCode: "Invalid access code. Please try again.",
     backBtnText: "Back to Home",
     accessCodeLabel: "Access Code",
     accessCodePlaceholder: "Enter access code",
@@ -115,6 +116,7 @@ const translations = {
     cancelCropText: "取消",
     accessErrorTitle: "访问被拒绝",
     accessErrorMessage: "您需要有效的访问码才能查看此页面。",
+    invalidAccessCode: "访问码无效，请重新输入。",
     backBtnText: "返回首页",
     accessCodeLabel: "访问码",
     accessCodePlaceholder: "请输入访问码",
@@ -326,8 +328,8 @@ function processImage(img) {
     if (code) {
       const qrcodeId = code.data;
       
-      // Send request to backend API
-      request.post('/api/wr', { 
+      // 发送请求到后端API
+      request.post('/api/wr_api', { 
         qrcode_id: qrcodeId,
         access_code: accessCode.value
       })
@@ -444,7 +446,15 @@ function submitForm() {
           showSuccessToast(t.value.toastMessage);
           showActivatedResultWithData(response.data.data);
         } else {
-          showErrorToast(response.data.message || t.value.processingError);
+          // 处理错误响应
+          if (response.data.message === '无效的访问码') {
+            // 如果是访问码无效，显示访问码输入对话框
+            accessCodeValid.value = false;
+            showAccessCodeError.value = true;
+            showErrorToast(t.value.invalidAccessCode);
+          } else {
+            showErrorToast(response.data.message || t.value.processingError);
+          }
         }
       })
       .catch(error => {
@@ -514,11 +524,11 @@ function submitAccessCode() {
     const urlId = urlParams.get('id');
     const qrcodeId = urlParams.get('qrcode_id');
     
-    // 如果有id参数，直接请求qr/wr接口
+    // 如果有id参数，直接请求api/wr_api接口
     if (urlId) {
       showProcessingAnimation.value = true;
       
-      request.post('/api/wr', { 
+      request.post('/api/wr_api', {
         qrcode_id: urlId,
         access_code: accessCode.value
       })
@@ -541,10 +551,10 @@ function submitAccessCode() {
         console.error('Error:', error);
       });
     } else if (qrcodeId) {
-      // 如果有qrcode_id参数，也请求qr/wr接口
+      // 如果有qrcode_id参数，也请求api/wr_api接口
       showProcessingAnimation.value = true;
       
-      request.post('/api/wr', { 
+      request.post('/api/wr_api', { 
         qrcode_id: qrcodeId,
         access_code: accessCode.value
       })
@@ -591,12 +601,12 @@ onMounted(() => {
     return; // 停止后续处理，等待用户输入访问码
   }
   
-  // 如果有id参数，直接请求qr/wr接口
+  // 如果有id参数，直接请求api/wr_api接口
   if (urlId) {
     showProcessingAnimation.value = true;
     
-    // 发送请求到qr/wr接口，带上access_code和id参数
-    request.post('/api/wr', { 
+    // 发送请求到api/wr_api接口，带上access_code和id参数
+    request.post('/api/wr_api', { 
       qrcode_id: urlId,
       access_code: accessCode.value
     })
@@ -619,10 +629,10 @@ onMounted(() => {
       console.error('Error:', error);
     });
   } else if (qrcodeId) {
-    // 如果有qrcode_id参数，也请求qr/wr接口
+    // 如果有qrcode_id参数，也请求api/wr_api接口
     showProcessingAnimation.value = true;
     
-    request.post('/api/wr', { 
+    request.post('/api/wr_api', { 
       qrcode_id: qrcodeId,
       access_code: accessCode.value
     })
