@@ -188,8 +188,9 @@ function handleFileUpload(event) {
 
 // Retake photo
 function retakePhoto() {
-  document.getElementById('qr-code-upload').value = '';
+  // 不再直接操作DOM元素，因为可能不存在
   showUploadPreview.value = false;
+  previewImageSrc.value = '';
 }
 
 // Confirm upload and process image

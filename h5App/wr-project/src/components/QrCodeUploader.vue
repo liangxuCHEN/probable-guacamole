@@ -1,6 +1,10 @@
 <script setup>
 import { ref, defineProps, defineEmits } from 'vue';
 
+// 添加本地响应式变量，用于控制预览状态
+const localPreviewImageSrc = ref('');
+const localShowUploadPreview = ref(false);
+
 const props = defineProps({
   t: {
     type: Object,
@@ -12,6 +16,15 @@ const props = defineProps({
   previewImageSrc: String
 });
 
+// 监听props变化，同步到本地变量
+function updateLocalState() {
+  localPreviewImageSrc.value = props.previewImageSrc || '';
+  localShowUploadPreview.value = props.showUploadPreview || false;
+}
+
+// 初始化本地状态
+updateLocalState();
+
 const emit = defineEmits([
   'fileUpload', 
   'retakePhoto', 
@@ -21,6 +34,14 @@ const emit = defineEmits([
 ]);
 
 function handleFileUpload(file) {
+  // 处理文件上传并更新本地预览状态
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    localPreviewImageSrc.value = e.target.result;
+    localShowUploadPreview.value = true;
+  };
+  reader.readAsDataURL(file.file);
+  
   // Vant的Uploader组件传递的是文件对象，而不是事件对象
   // 创建一个模拟的事件对象，包含files属性
   const mockEvent = {
@@ -32,6 +53,9 @@ function handleFileUpload(file) {
 }
 
 function retakePhoto() {
+  // 直接在组件内部处理重拍逻辑
+  localPreviewImageSrc.value = '';
+  localShowUploadPreview.value = false;
   emit('retakePhoto');
 }
 
@@ -70,9 +94,9 @@ function cropAndScan() {
     </div>
 
     <!-- Upload Preview -->
-    <div v-if="showUploadPreview" class="preview-container">
+    <div v-if="showUploadPreview || localShowUploadPreview" class="preview-container">
       <div class="preview-image-container">
-        <van-image :src="previewImageSrc" alt="Uploaded QR code" fit="contain" />
+        <van-image :src="localPreviewImageSrc" alt="Uploaded QR code" fit="contain" />
       </div>
       <div class="button-container">
         <van-button plain @click="retakePhoto" icon="replay">
