@@ -345,13 +345,18 @@ function processImage(img) {
               showNotActivatedResultWithData(response.data.data.product);
             }
           } else {
-            showErrorToast(response.data.message || t.value.processingError);
+            showErrorToast(response.data || t.value.processingError);
             showUploadPreview.value = true;
           }
         })
         .catch(error => {
           showProcessingAnimation.value = false;
-          showErrorToast(t.value.processingError);
+          // 检查错误响应是否包含数据
+          if (error.response && error.response.data) {
+            showErrorToast(error.response.data);
+          } else {
+            showErrorToast(t.value.processingError);
+          }
           console.error('Error:', error);
           showUploadPreview.value = true;
         });
@@ -439,17 +444,22 @@ request.post('/api/code_api', {
     // 访问码有效，继续提交表单
     saveAccessCodeToLocalStorage(accessCode.value);
     submitFormData();
-  } else {
-    // 访问码无效
-    accessCodeValid.value = false;
-    clearAccessCodeFromLocalStorage();
-    showErrorToast(t.value.invalidAccessCode);
-  }
-})
-.catch(error => {
-  showErrorToast(t.value.processingError);
-  console.error('Error validating access code:', error);
-});
+    } else {
+      // 访问码无效
+      accessCodeValid.value = false;
+      clearAccessCodeFromLocalStorage();
+      showErrorToast(t.value.invalidAccessCode);
+    }
+  })
+  .catch(error => {
+    // 检查错误响应是否包含数据
+    if (error.response && error.response.data) {
+      showErrorToast(error.response.data);
+    } else {
+      showErrorToast(t.value.processingError);
+    }
+    console.error('Error validating access code:', error);
+  });
   }
 }
 
@@ -475,17 +485,23 @@ function submitFormData() {
         showActivatedResultWithData(response.data.data);
       } else {
         // 处理错误响应
-        if (response.data.message === '无效的访问码') {
+        if (response.data.message === '无效的访问码' || 
+            (response.data.message_en && response.data.message_en === 'Invalid access code')) {
           // 如果是访问码无效，重置状态
           accessCodeValid.value = false;
           showErrorToast(t.value.invalidAccessCode);
         } else {
-          showErrorToast(response.data.message || t.value.processingError);
+          showErrorToast(response.data || t.value.processingError);
         }
       }
     })
     .catch(error => {
-      showErrorToast(t.value.processingError);
+      // 检查错误响应是否包含数据
+      if (error.response && error.response.data) {
+        showErrorToast(error.response.data);
+      } else {
+        showErrorToast(t.value.processingError);
+      }
       console.error('Error:', error);
     });
 }
@@ -502,11 +518,37 @@ function showSuccessToast(message) {
 
 // Show error toast
 function showErrorToast(message) {
-  showNotify({
-    message: message,
-    type: 'danger',
-    duration: 3000
-  });
+  // 检查响应是否包含多语言错误消息
+  if (typeof message === 'object' && message !== null) {
+    // 如果是对象，尝试根据当前语言获取对应的错误消息
+    if (currentLang.value === 'en' && message.message_en) {
+      showNotify({
+        message: message.message_en,
+        type: 'danger',
+        duration: 3000
+      });
+    } else if (message.message) {
+      showNotify({
+        message: message.message,
+        type: 'danger',
+        duration: 3000
+      });
+    } else {
+      // 如果没有找到适合的消息，使用默认错误消息
+      showNotify({
+        message: t.value.processingError,
+        type: 'danger',
+        duration: 3000
+      });
+    }
+  } else {
+    // 如果是字符串，直接显示
+    showNotify({
+      message: message,
+      type: 'danger',
+      duration: 3000
+    });
+  }
 }
 
 // Restart process
@@ -587,16 +629,22 @@ function handleAccessCodeValidated(validAccessCode) {
         }
       } else {
         // 如果访问码无效，重置状态并清除本地存储
-        if (response.data.message === '无效的访问码') {
+        if (response.data.message === '无效的访问码' || 
+            (response.data.message_en && response.data.message_en === 'Invalid access code')) {
           accessCodeValid.value = false;
           clearAccessCodeFromLocalStorage();
         }
-        showErrorToast(response.data.message || t.value.processingError);
+        showErrorToast(response.data || t.value.processingError);
       }
     })
     .catch(error => {
       showProcessingAnimation.value = false;
-      showErrorToast(t.value.processingError);
+      // 检查错误响应是否包含数据
+      if (error.response && error.response.data) {
+        showErrorToast(error.response.data);
+      } else {
+        showErrorToast(t.value.processingError);
+      }
       console.error('Error:', error);
     });
   } else if (qrcodeId) {
@@ -689,7 +737,12 @@ function validateAccessCode(code, urlId, qrcodeId) {
   })
   .catch(error => {
     accessCodeValid.value = false;
-    showErrorToast(t.value.processingError);
+    // 检查错误响应是否包含数据
+    if (error.response && error.response.data) {
+      showErrorToast(error.response.data);
+    } else {
+      showErrorToast(t.value.processingError);
+    }
     console.error('Error validating access code:', error);
   });
 }
@@ -716,15 +769,21 @@ function processUrlParameters(urlId, qrcodeId) {
         }
       } else {
         // 如果访问码无效，重置状态
-        if (response.data.message === '无效的访问码') {
+        if (response.data.message === '无效的访问码' || 
+            (response.data.message_en && response.data.message_en === 'Invalid access code')) {
           accessCodeValid.value = false;
         }
-        showErrorToast(response.data.message || t.value.processingError);
+        showErrorToast(response.data || t.value.processingError);
       }
     })
     .catch(error => {
       showProcessingAnimation.value = false;
-      showErrorToast(t.value.processingError);
+      // 检查错误响应是否包含数据
+      if (error.response && error.response.data) {
+        showErrorToast(error.response.data);
+      } else {
+        showErrorToast(t.value.processingError);
+      }
       console.error('Error:', error);
     });
   } else if (qrcodeId) {
