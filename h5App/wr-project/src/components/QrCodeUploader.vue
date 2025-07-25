@@ -56,8 +56,8 @@ function cropAndScan() {
     
     <!-- QR Code Upload Button -->
     <div class="button-container">
-      <van-uploader :after-read="handleFileUpload" accept="image/*">
-        <van-button type="primary" icon="photograph" round block>
+      <van-uploader class="custom-uploader" :after-read="handleFileUpload" accept="image/*">
+        <van-button type="primary" icon="photograph" block round>
           {{ t.uploadBtnText }}
         </van-button>
       </van-uploader>
@@ -136,15 +136,27 @@ function cropAndScan() {
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-left: 55%;
+  padding: 0 16px;
+}
+
+.custom-uploader {
+  width: 100%;
+  display: block;
 }
 
 .button-container :deep(.van-uploader) {
   width: 100%;
+  display: block;
 }
 
 .button-container :deep(.van-uploader__wrapper) {
   width: 100%;
+  display: block;
+}
+
+.button-container :deep(.van-button) {
+  width: 100% !important;
+  display: block;
 }
 
 .processing-container {
