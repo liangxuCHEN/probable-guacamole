@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建axios实例
 const request = axios.create({
-  baseURL: 'http://localhost/',
+  baseURL: 'https://api.innrgpower.com',
   timeout: 10000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json'

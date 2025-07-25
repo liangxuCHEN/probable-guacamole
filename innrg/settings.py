@@ -46,7 +46,8 @@ else:
         'https://qr.yayaxueqin.cn',
         'https://qr.notebay.cn',
         'https://*.yayaxueqin.cn',
-        'https://*.notebay.cn'
+        'https://*.notebay.cn',
+        'https://*.innrgpower.com',
     ]
 
     SECURE_SSL_REDIRECT = True  # 重定向HTTP到HTTPS
