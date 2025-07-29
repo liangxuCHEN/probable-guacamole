@@ -12,7 +12,10 @@ export default defineConfig({
         target: 'https://qr.yayaxueqin.cn',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api')
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        headers: {
+          'Origin': 'https://k.innrgpower.com'
+        }
       }
     }
   }

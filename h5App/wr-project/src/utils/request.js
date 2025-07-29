@@ -2,10 +2,11 @@ import axios from 'axios';
 
 // 创建axios实例
 const request = axios.create({
-  baseURL: 'https://qr.yayaxueqin.cn/', // 使用相对路径，通过Vite代理转发请求
+  baseURL: '/api', // 使用相对路径，通过Vite代理转发请求
   timeout: 10000, // 请求超时时间
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Origin': 'https://k.innrgpower.com' // 明确指定请求来源
   },
   withCredentials: true // 允许跨域请求携带凭证
 });
