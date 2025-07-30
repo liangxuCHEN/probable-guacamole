@@ -1,0 +1,63 @@
+sversion: '2'
+
+#networks:
+#  1panel-network:
+#    external: true
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /root/innrg/nginx/conf.d:/etc/nginx/conf.d
+      - /root/innrg/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - /root/innrg/nginx/ssl:/etc/nginx/ssl
+      - /root/innrg/static:/app/static
+      - /root/innrg/media:/app/media
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: always
+    command: sh -c "until nc -z backend 8000; do sleep 1; done && nginx -g 'daemon off;'"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: gunicorn innrg.wsgi:application -c /app/gunicorn.conf.py
+    volumes:
+      - .:/app
+      - /root/innrg/static:/app/static
+      - /root/innrg/media:/app/media
+      - /root/innrg/logs/gunicorn:/var/log/gunicorn
+    ports:
+      - "8080:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    networks:
+      - app-network
+    restart: always
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1.5'
+#          memory: 2G
+  db:
+    image: postgres:15
+    volumes:
+      - /root/docker_data/innrg_pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=innrg
+      - POSTGRES_USER=clx
+      - POSTGRES_PASSWORD=yaya$$789
+    networks:
+      - app-network
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
